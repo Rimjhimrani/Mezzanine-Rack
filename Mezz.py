@@ -223,7 +223,7 @@ def extract_store_location_data_from_excel(row_data):
     return [store_loc_1, store_loc_2, store_loc_3, store_loc_4, store_loc_5, store_loc_6, store_loc_7, store_loc_8]
 
 def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_col, store_loc_col, bus_model_col):
-    """Create a single sticker layout"""
+    """Create a single sticker layout with border around the entire sticker"""
     # Extract data
     part_no = str(row[part_no_col]) if pd.notna(row[part_no_col]) else ""
     desc = str(row[desc_col]) if pd.notna(row[desc_col]) else ""
@@ -247,7 +247,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     
     qr_image = generate_qr_code(qr_data)
     
-    elements = []
+    sticker_content = []
     
     # Define row heights
     header_row_height = 1.0*cm
@@ -275,7 +275,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('FONTSIZE', (0, 0), (0, -1), 12),
     ]))
 
-    elements.append(main_table)
+    sticker_content.append(main_table)
 
     # Store Location section
     store_loc_label = Paragraph("Store Location", ParagraphStyle(
@@ -312,10 +312,10 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
-    elements.append(store_loc_table)
+    sticker_content.append(store_loc_table)
 
     # Add small spacer
-    elements.append(Spacer(1, 0.3*cm))
+    sticker_content.append(Spacer(1, 0.3*cm))
 
     # Bottom section - MTM boxes and QR code
     mtm_box_width = 1.8*cm
@@ -392,10 +392,28 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 
-    elements.append(bottom_row)
+    sticker_content.append(bottom_row)
+    
+    # Create outer table that wraps all sticker content with border
+    sticker_table = Table(
+        [[sticker_content]],
+        colWidths=[CONTENT_BOX_WIDTH],
+        rowHeights=[CONTENT_BOX_HEIGHT]
+    )
+    
+    # Add border around the entire sticker
+    sticker_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 2, colors.black),  # Outer border for entire sticker
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+    ]))
     
     # Wrap in KeepTogether to prevent page breaks within a sticker
-    return KeepTogether(elements)
+    return KeepTogether([sticker_table])
 
 def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=None):
     """Generate sticker labels with QR code from Excel data - 2 per page"""
