@@ -48,7 +48,7 @@ except ImportError:
 # Define paragraph styles
 bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=16, alignment=TA_LEFT, leading=14)
 desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=14, alignment=TA_LEFT, leading=12)
-qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=12, alignment=TA_CENTER, leading=12)
+qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=14, alignment=TA_CENTER, leading=12)
 
 def find_bus_model_column(df_columns):
     """Enhanced function to find the bus model column with better detection"""
@@ -272,7 +272,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (0, -1), 12),
+        ('FONTSIZE', (0, 0), (0, -1), 14),
     ]))
 
     sticker_content.append(main_table)
@@ -347,7 +347,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 12),
+        ('FONTSIZE', (0, 0), (-1, -1), 14),
     ]))
 
     # QR code table
