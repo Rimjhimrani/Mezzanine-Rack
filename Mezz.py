@@ -46,8 +46,8 @@ except ImportError:
     QR_AVAILABLE = True
 
 # Define paragraph styles
-bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER, leading=14)
-desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=12, alignment=TA_CENTER, leading=12)
+bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=16, alignment=TA_LEFT, leading=14)
+desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=14, alignment=TA_LEFT, leading=12)
 qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=12, alignment=TA_CENTER, leading=12)
 
 def find_bus_model_column(df_columns):
@@ -250,7 +250,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     sticker_content = []
     
     # Define row heights
-    header_row_height = 1.0*cm
+    header_row_height = 1.2*cm
     desc_row_height = 1.2*cm
     max_capacity_row_height = 0.8*cm
     store_loc_row_height = 1.0*cm
@@ -299,7 +299,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('FONTSIZE', (0, 0), (-1, -1), 12),
     ]))
     
     store_loc_table = Table(
@@ -319,7 +319,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
 
     # Bottom section - MTM boxes and QR code
     mtm_box_width = 1.8*cm
-    mtm_row_height = 1.5*cm
+    mtm_row_height = 1.7*cm
 
     position_matrix_data = [
         ["7M", "9M", "12M"],
@@ -347,7 +347,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('FONTSIZE', (0, 0), (-1, -1), 12),
     ]))
 
     # QR code table
