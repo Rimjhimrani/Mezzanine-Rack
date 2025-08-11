@@ -676,27 +676,6 @@ def main():
         4. **Download** - Get your space-efficient PDF labels
         """)
         
-        st.subheader("🎯 Key Improvements")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("""
-            **Space Optimization:**
-            - 2 labels per A4 page instead of 1
-            - 50% paper savings
-            - Professional spacing
-            - Clean, borderless design
-            """)
-        
-        with col2:
-            st.markdown("""
-            **Better Layout:**
-            - No wasted empty space
-            - Proper margin control
-            - Consistent formatting
-            - Printer-friendly output
-            """)
-        
         # Sample data format
         st.subheader("📊 Sample Data Format")
         sample_data = pd.DataFrame({
