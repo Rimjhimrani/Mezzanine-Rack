@@ -521,7 +521,7 @@ def main():
     st.title("🏷️ Mezzanine Label Generator")
     st.markdown(
         "<p style='font-size:18px; font-style:italic; margin-top:-10px; text-align:left;'>"
-        "Designed and Developed by Agilomatrix - 2 Stickers per Page</p>",
+        "Designed and Developed by Agilomatrix</p>",
         unsafe_allow_html=True
     )
 
@@ -564,7 +564,7 @@ def main():
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            if st.button("🏷️ Generate PDF Labels (2 per page)", type="primary", use_container_width=True):
+            if st.button("🏷️ Generate PDF Labels", type="primary", use_container_width=True):
                 # Create progress container
                 status_container = st.empty()
                 
