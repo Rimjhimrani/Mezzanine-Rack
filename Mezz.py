@@ -279,7 +279,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
 
     # Store Location section
     store_loc_label = Paragraph("Store Location", ParagraphStyle(
-        name='StoreLoc', fontName='Helvetica-Bold', fontSize=12, alignment=TA_CENTER
+        name='StoreLoc', fontName='Helvetica-Bold', fontSize=14, alignment=TA_CENTER
     ))
     
     inner_table_width = CONTENT_BOX_WIDTH * 2 / 3
@@ -299,7 +299,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 12),
+        ('FONTSIZE', (0, 0), (-1, -1), 14),
     ]))
     
     store_loc_table = Table(
