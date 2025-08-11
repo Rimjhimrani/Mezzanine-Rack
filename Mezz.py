@@ -17,11 +17,11 @@ import tempfile
 # Define sticker dimensions - Updated to match template
 STICKER_WIDTH = 18 * cm
 STICKER_HEIGHT = 8 * cm
-STICKER_PAGESIZE = A4  # Changed to A4
+STICKER_PAGESIZE = A4
 
-# Define content box dimensions
+# Define content box dimensions - FIXED: Reduced height to fit content better
 CONTENT_BOX_WIDTH = 18 * cm
-CONTENT_BOX_HEIGHT = 8 * cm
+CONTENT_BOX_HEIGHT = 6 * cm  # Reduced from 8cm to 6cm
 
 # Check for PIL and install if needed
 try:
@@ -45,10 +45,10 @@ except ImportError:
     import qrcode
     QR_AVAILABLE = True
 
-# Define paragraph styles
-bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=18, alignment=TA_CENTER, leading=16)
-desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=14, alignment=TA_CENTER, leading=14)
-qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=14, alignment=TA_CENTER, leading=14)
+# Define paragraph styles - FIXED: Reduced font sizes
+bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=14, alignment=TA_CENTER, leading=14)
+desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=12, alignment=TA_CENTER, leading=12)
+qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=12, alignment=TA_CENTER, leading=12)
 
 def find_bus_model_column(df_columns):
     """
@@ -240,8 +240,8 @@ def generate_qr_code(data_string):
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_M,
-            box_size=10,
-            border=4,
+            box_size=8,  # FIXED: Reduced box size
+            border=3,    # FIXED: Reduced border
         )
         
         # Add data
@@ -256,8 +256,8 @@ def generate_qr_code(data_string):
         qr_img.save(img_buffer, format='PNG')
         img_buffer.seek(0)
         
-        # Create a QR code image with specified size
-        return Image(img_buffer, width=2.5*cm, height=2.5*cm)
+        # Create a QR code image with specified size - FIXED: Smaller QR code
+        return Image(img_buffer, width=2*cm, height=2*cm)
     except Exception as e:
         st.error(f"Error generating QR code: {e}")
         import traceback
@@ -297,18 +297,18 @@ def extract_store_location_data_from_excel(row_data):
     return [store_loc_1, store_loc_2, store_loc_3, store_loc_4, store_loc_5, store_loc_6, store_loc_7, store_loc_8]
 
 def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=None):
-    """Generate sticker labels with QR code from Excel data - Updated for A4 and new template"""
+    """Generate sticker labels with QR code from Excel data - FIXED layout and positioning"""
     if status_callback:
         status_callback(f"Processing file: {excel_file_path}")
     else:
         st.write(f"Processing file: {excel_file_path}")
 
-    # Create a function to draw the border box around content
+    # FIXED: Create a function to draw the border box around content - Better positioning
     def draw_border(canvas, doc):
         canvas.saveState()
-        # Draw border box around the content area
+        # Calculate center position for the content box
         x_offset = (A4[0] - CONTENT_BOX_WIDTH) / 2
-        y_offset = (A4[1] - CONTENT_BOX_HEIGHT) / 2
+        y_offset = (A4[1] - CONTENT_BOX_HEIGHT) / 2 + 1*cm  # FIXED: Moved up by 1cm
         canvas.setStrokeColor(colors.Color(0, 0, 0, alpha=0.95))
         canvas.setLineWidth(2)
         canvas.rect(
@@ -390,9 +390,9 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         if bus_model_col:
             st.write(f"Bus Model Column: {bus_model_col}")
 
-    # Create document with A4 page size
+    # FIXED: Create document with better margins
     doc = SimpleDocTemplate(output_pdf_path, pagesize=A4,
-                          topMargin=1*cm, bottomMargin=1*cm,
+                          topMargin=2*cm, bottomMargin=2*cm,  # FIXED: Increased margins
                           leftMargin=1*cm, rightMargin=1*cm)
 
     content_width = CONTENT_BOX_WIDTH - 0.4*cm
@@ -434,16 +434,16 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         if status_callback and qr_image:
             status_callback(f"QR code generated for part: {part_no}")
         
-        # Define row heights - adjusted for larger sticker
-        header_row_height = 1.2*cm
-        desc_row_height = 1.4*cm
-        max_capacity_row_height = 1.0*cm
-        store_loc_row_height = 1.2*cm
+        # FIXED: Define row heights - Reduced for better fit
+        header_row_height = 0.8*cm  # Reduced from 1.2cm
+        desc_row_height = 1.0*cm    # Reduced from 1.4cm
+        max_capacity_row_height = 0.8*cm  # Reduced from 1.0cm
+        store_loc_row_height = 0.8*cm     # Reduced from 1.2cm
 
         # Main table data - Updated to use "Max capacity" instead of "Qty/Bin"
         main_table_data = [
             ["Part No", Paragraph(f"{part_no}", bold_style)],
-            ["Description", Paragraph(desc[:60] + "..." if len(desc) > 60 else desc, desc_style)],
+            ["Description", Paragraph(desc[:50] + "..." if len(desc) > 50 else desc, desc_style)],  # FIXED: Shortened description
             ["Max capacity", Paragraph(str(max_capacity), qty_style)]
         ]
 
@@ -457,14 +457,14 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (0, -1), 14),
+            ('FONTSIZE', (0, 0), (0, -1), 12),  # FIXED: Reduced font size
         ]))
 
         elements.append(main_table)
 
         # Store Location section - Updated for 8 columns as per template
         store_loc_label = Paragraph("Store Location", ParagraphStyle(
-            name='StoreLoc', fontName='Helvetica-Bold', fontSize=14, alignment=TA_CENTER
+            name='StoreLoc', fontName='Helvetica-Bold', fontSize=12, alignment=TA_CENTER  # FIXED: Reduced font size
         ))
         
         # Total width for the 8 inner columns
@@ -490,7 +490,7 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 12),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),  # FIXED: Reduced font size
         ]))
         
         store_loc_table = Table(
@@ -505,25 +505,25 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         ]))
         elements.append(store_loc_table)
 
-        # Add spacer before bottom section
-        elements.append(Spacer(1, 0.5*cm))
+        # FIXED: Reduced spacer before bottom section
+        elements.append(Spacer(1, 0.2*cm))  # Reduced from 0.5cm
 
-        # Bottom section - MTM boxes and QR code
-        mtm_box_width = 2*cm
-        mtm_row_height = 2*cm
+        # Bottom section - MTM boxes and QR code - FIXED: Smaller dimensions
+        mtm_box_width = 1.5*cm   # Reduced from 2cm
+        mtm_row_height = 1.2*cm  # Reduced from 2cm
 
         # Create MTM boxes with detected quantities
         position_matrix_data = [
             ["7M", "9M", "12M"],
             [
                 Paragraph(f"<b>{mtm_quantities['7M']}</b>", ParagraphStyle(
-                    name='Bold7M', fontName='Helvetica-Bold', fontSize=14, alignment=TA_CENTER
+                    name='Bold7M', fontName='Helvetica-Bold', fontSize=12, alignment=TA_CENTER  # FIXED: Reduced font size
                 )) if mtm_quantities['7M'] else "",
                 Paragraph(f"<b>{mtm_quantities['9M']}</b>", ParagraphStyle(
-                    name='Bold9M', fontName='Helvetica-Bold', fontSize=14, alignment=TA_CENTER
+                    name='Bold9M', fontName='Helvetica-Bold', fontSize=12, alignment=TA_CENTER  # FIXED: Reduced font size
                 )) if mtm_quantities['9M'] else "",
                 Paragraph(f"<b>{mtm_quantities['12M']}</b>", ParagraphStyle(
-                    name='Bold12M', fontName='Helvetica-Bold', fontSize=14, alignment=TA_CENTER
+                    name='Bold12M', fontName='Helvetica-Bold', fontSize=12, alignment=TA_CENTER  # FIXED: Reduced font size
                 )) if mtm_quantities['12M'] else ""
             ]
         ]
@@ -539,12 +539,12 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 12),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),  # FIXED: Reduced font size
         ]))
 
-        # QR code - larger size for bigger sticker
-        qr_width = 3*cm
-        qr_height = 3*cm
+        # QR code - FIXED: Smaller size for better fit
+        qr_width = 2*cm   # Reduced from 3cm
+        qr_height = 2*cm  # Reduced from 3cm
 
         if qr_image:
             # Update QR image size
@@ -558,7 +558,7 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         else:
             qr_table = Table(
                 [[Paragraph("QR", ParagraphStyle(
-                    name='QRPlaceholder', fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER
+                    name='QRPlaceholder', fontName='Helvetica-Bold', fontSize=14, alignment=TA_CENTER  # FIXED: Reduced font size
                 ))]],
                 colWidths=[qr_width],
                 rowHeights=[qr_height]
@@ -785,7 +785,7 @@ def main():
         with info_col1:
             st.markdown("""
             **Label Features:**
-            - 📏 A4 page with 18cm x 8cm stickers
+            - 📏 A4 page with optimized 18cm x 6cm stickers
             - 🔢 QR code for each part
             - 📍 Store location tracking (8 fields)
             - 🚌 Bus model detection (7M, 9M, 12M)
