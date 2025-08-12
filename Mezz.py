@@ -45,10 +45,10 @@ except ImportError:
     import qrcode
     QR_AVAILABLE = True
 
-# Define paragraph styles
-bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=32, alignment=TA_CENTER, leading=10)
-desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=24, alignment=TA_CENTER, leading=10)
-qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=20, alignment=TA_CENTER, leading=10)
+# Define paragraph styles - UPDATED FONT SIZES
+bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=34, alignment=TA_CENTER, leading=38)
+desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=24, alignment=TA_CENTER, leading=26)
+qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=20, alignment=TA_CENTER, leading=22)
 
 def find_bus_model_column(df_columns):
     """Enhanced function to find the bus model column with better detection"""
@@ -249,30 +249,36 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     
     sticker_content = []
     
-    # Define row heights
-    header_row_height = 1.8*cm
+    # Define row heights - ADJUSTED FOR BETTER FIT
+    header_row_height = 2.0*cm  # Increased for better spacing
     desc_row_height = 1.5*cm
     max_capacity_row_height = 1.0*cm
     store_loc_row_height = 1.2*cm
 
-    # Main table data
+    # Main table data with improved Part No styling
     main_table_data = [
         ["Part No", Paragraph(f"{part_no}", bold_style)],
         ["Description", Paragraph(desc[:50] + "..." if len(desc) > 50 else desc, desc_style)],
         ["Max capacity", Paragraph(str(max_capacity), qty_style)]
     ]
 
-    # Create main table
+    # Create main table with IMPROVED PADDING
     main_table = Table(main_table_data,
                      colWidths=[CONTENT_BOX_WIDTH/3, CONTENT_BOX_WIDTH*2/3],
                      rowHeights=[header_row_height, desc_row_height, max_capacity_row_height])
 
+    # UPDATED TABLE STYLE WITH PROPER PADDING
     main_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (0, -1), 20),
+        # ADDED PROPER PADDING FOR ALL CELLS
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
     ]))
 
     sticker_content.append(main_table)
@@ -300,6 +306,11 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 22),
+        # ADDED PADDING FOR STORE LOCATION CELLS
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ]))
     
     store_loc_table = Table(
@@ -311,6 +322,11 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        # ADDED PADDING FOR STORE LOCATION SECTION
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
     ]))
     sticker_content.append(store_loc_table)
 
@@ -401,15 +417,15 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         rowHeights=[CONTENT_BOX_HEIGHT]
     )
     
-    # Add border around the entire sticker
+    # Add border around the entire sticker with NO PADDING (to prevent content touching border)
     sticker_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 2, colors.black),  # Outer border for entire sticker
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),   # Reduced padding
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),  # Reduced padding
+        ('TOPPADDING', (0, 0), (-1, -1), 4),    # Reduced padding
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4), # Reduced padding
     ]))
     
     # Wrap in KeepTogether to prevent page breaks within a sticker
@@ -591,104 +607,82 @@ def main():
                         with open(result_path, 'rb') as pdf_file:
                             pdf_data = pdf_file.read()
                         
-                        status_container.success("✅ Optimized labels generated successfully!")
+                        status_container.success("✅ Fixed Part No styling - properly centered with 34pt font!")
                         
                         # Download button
                         st.download_button(
                             label="📥 Download PDF Labels",
                             data=pdf_data,
-                            file_name=f"optimized_sticker_labels_{uploaded_file.name.split('.')[0]}.pdf",
+                            file_name=f"mezzanine_labels_{uploaded_file.name.split('.')[0]}.pdf",
                             mime="application/pdf",
                             use_container_width=True
                         )
                         
-                        # Show file info
-                        if uploaded_file.name.lower().endswith('.csv'):
-                            df_count = len(pd.read_csv(temp_input_path))
-                        else:
-                            df_count = len(pd.read_excel(temp_input_path))
-                        
-                        pages_needed = (df_count + 1) // 2  # 2 stickers per page
-                        file_size = len(pdf_data) / 1024  # KB
-                        st.info(f"📄 PDF size: {file_size:.1f} KB | Stickers: {df_count} | Pages: {pages_needed}")
-                        
                     else:
-                        status_container.error("❌ Failed to generate labels")
+                        status_container.error("❌ Failed to generate PDF labels")
                         
                 except Exception as e:
-                    status_container.error(f"❌ Error: {str(e)}")
-                    st.exception(e)
+                    status_container.error(f"❌ Error generating labels: {str(e)}")
+                    st.error("Please check your file format and try again.")
                 
                 finally:
-                    # Cleanup temporary files
+                    # Clean up temporary files
                     try:
-                        if os.path.exists(temp_input_path):
-                            os.unlink(temp_input_path)
-                        if os.path.exists(temp_output_path):
+                        os.unlink(temp_input_path)
+                        if 'temp_output_path' in locals():
                             os.unlink(temp_output_path)
                     except:
                         pass
         
         with col2:
-            st.markdown("""
-            **Optimizations:**
-            - ✅ 2 stickers per A4 page
-            - ✅ No empty space waste
-            - ✅ Clean borders
-            - ✅ Proper spacing
-            - ✅ Same functionality
-            """)
-        
-        # Additional information
-        st.subheader("ℹ️ Optimization Details")
-        
-        info_col1, info_col2 = st.columns(2)
-        
-        with info_col1:
-            st.markdown("""
-            **New Features:**
-            - 📄 2 labels per A4 page (saves paper)
-            - 🎯 Optimized layout with proper spacing  
-            - 🚫 Removed unnecessary outer borders
-            - 📏 Adjusted dimensions for better fit
-            - ⚡ Faster generation process
-            """)
-        
-        with info_col2:
-            st.markdown("""
-            **Same Functionality:**
-            - 🔢 QR code for each part
-            - 📍 Store location tracking (8 fields)
-            - 🚌 Bus model detection (7M, 9M, 12M)
-            - 📦 Max capacity field
-            - 🎯 All original features preserved
-            """)
+            st.info(
+                "**📋 Requirements:**\n"
+                "- Excel (.xlsx, .xls) or CSV file\n"
+                "- Part Number column\n"
+                "- Description column\n"
+                "- Optional: Max Capacity, Store Location, QTY/VEH columns\n"
+                "- Optional: Bus Model column (7M, 9M, 12M)"
+            )
     
     else:
         # Instructions when no file is uploaded
         st.info("👆 Please upload an Excel or CSV file to get started")
         
-        st.subheader("📋 Instructions")
-        st.markdown("""
-        1. **Upload your file** - Excel (.xlsx, .xls) or CSV format
-        2. **Review data preview** - Check if your data looks correct
-        3. **Generate optimized labels** - 2 stickers per A4 page
-        4. **Download** - Get your space-efficient PDF labels
-        """)
+        # Feature highlights
+        st.subheader("✨ Features")
+        col1, col2, col3 = st.columns(3)
         
-        # Sample data format
-        st.subheader("📊 Sample Data Format")
-        sample_data = pd.DataFrame({
-            'Part No': ['AA0107020000', 'DEF456', 'GHI789'],
-            'Description': ['REAR SUSPENSION-WIL', 'Brake Pad Set', 'Oil Filter'],
-            'Max Capacity': [9, 10, 8],
-            'Qty/Veh': [2, 4, 1],
-            'Bus Model': ['12M', '9M', '7M'],
-            'Store Loc 1': ['Mez-c', 'G+1', 'B1'],
-            'Store Loc 2': ['G+1', 'R2', 'L3'],
-            'Store Loc 3': ['R', 'A', 'B']
-        })
-        st.dataframe(sample_data, use_container_width=True)
+        with col1:
+            st.markdown("""
+            **🏷️ Professional Labels**
+            - Clean, readable design
+            - Optimized for printing
+            - 2 labels per page
+            """)
+        
+        with col2:
+            st.markdown("""
+            **📱 QR Code Integration**
+            - Automatic QR code generation
+            - Contains all part information
+            - Easy scanning and tracking
+            """)
+        
+        with col3:
+            st.markdown("""
+            **🚌 Bus Model Support**
+            - Automatic 7M, 9M, 12M detection
+            - Flexible column mapping
+            - Smart quantity parsing
+            """)
+    
+    # Footer
+    st.markdown("---")
+    st.markdown(
+        "<p style='text-align: center; color: gray; font-size: 14px;'>"
+        "© 2025 Agilomatrix - Mezzanine Label Generator v2.0</p>",
+        unsafe_allow_html=True
+    )
 
 if __name__ == "__main__":
     main()
