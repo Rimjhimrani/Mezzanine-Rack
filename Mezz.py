@@ -284,7 +284,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     # Main table data with improved Part No styling
     main_table_data = [
         ["Part No", Paragraph(f"{part_no}", bold_style)],
-        ["Description", Paragraph(desc[:50] + "..." if len(desc) > 50 else desc, desc_style)],
+        ["Description", Paragraph(desc, get_dynamic_desc_style(desc))],
         ["Max capacity", Paragraph(str(max_capacity), qty_style)]
     ]
 
