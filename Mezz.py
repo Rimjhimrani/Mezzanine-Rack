@@ -250,10 +250,10 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     sticker_content = []
     
     # Define row heights
-    header_row_height = 1.2*cm
-    desc_row_height = 1.2*cm
+    header_row_height = 1.5*cm
+    desc_row_height = 1.5*cm
     max_capacity_row_height = 0.8*cm
-    store_loc_row_height = 1.0*cm
+    store_loc_row_height = 1.2*cm
 
     # Main table data
     main_table_data = [
@@ -279,7 +279,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
 
     # Store Location section
     store_loc_label = Paragraph("Store Location", ParagraphStyle(
-        name='StoreLoc', fontName='Helvetica-Bold', fontSize=14, alignment=TA_CENTER
+        name='StoreLoc', fontName='Helvetica-Bold', fontSize=22, alignment=TA_CENTER
     ))
     
     inner_table_width = CONTENT_BOX_WIDTH * 2 / 3
@@ -318,7 +318,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     sticker_content.append(Spacer(1, 0.3*cm))
 
     # Bottom section - MTM boxes and QR code
-    mtm_box_width = 1.8*cm
+    mtm_box_width = 2.0*cm
     mtm_row_height = 1.7*cm
 
     position_matrix_data = [
