@@ -48,7 +48,7 @@ except ImportError:
 # Define paragraph styles - UPDATED FONT SIZES
 bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=40, alignment=TA_CENTER, leading=38)
 desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=30, alignment=TA_CENTER, leading=26)
-qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=20, alignment=TA_CENTER, leading=22)
+qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=24, alignment=TA_CENTER, leading=22)
 
 def find_bus_model_column(df_columns):
     """Enhanced function to find the bus model column with better detection"""
