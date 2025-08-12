@@ -48,7 +48,7 @@ except ImportError:
 # Define paragraph styles - UPDATED FONT SIZES
 bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=40, alignment=TA_CENTER, leading=38)
 desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=30, alignment=TA_CENTER, leading=26)
-qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=24, alignment=TA_CENTER, leading=22)
+qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=22, alignment=TA_CENTER, leading=22)
 
 def find_bus_model_column(df_columns):
     """Enhanced function to find the bus model column with better detection"""
@@ -252,7 +252,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     # Define row heights - ADJUSTED FOR BETTER FIT
     header_row_height = 2.0*cm  # Increased for better spacing
     desc_row_height = 1.5*cm
-    max_capacity_row_height = 1.35*cm
+    max_capacity_row_height = 1.32*cm
     store_loc_row_height = 1.2*cm
 
     # Main table data with improved Part No styling
