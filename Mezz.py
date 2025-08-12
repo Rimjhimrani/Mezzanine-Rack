@@ -440,19 +440,19 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     # Bottom section - MTM boxes and QR code
     # Bottom section - MTM boxes and QR code (UPDATED FOR BETTER QR CENTERING
     mtm_box_width = 1.8*cm
-    mtm_row_height = 2.0*cm
+    mtm_row_height = 1.8*cm
 
     position_matrix_data = [
         ["7M", "9M", "12M"],
         [
             Paragraph(f"<b>{mtm_quantities['7M']}</b>", ParagraphStyle(
-                name='Bold7M', fontName='Helvetica-Bold', fontSize=18, alignment=TA_CENTER
+                name='Bold7M', fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER
             )) if mtm_quantities['7M'] else "",
             Paragraph(f"<b>{mtm_quantities['9M']}</b>", ParagraphStyle(
-                name='Bold9M', fontName='Helvetica-Bold', fontSize=18, alignment=TA_CENTER
+                name='Bold9M', fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER
             )) if mtm_quantities['9M'] else "",
             Paragraph(f"<b>{mtm_quantities['12M']}</b>", ParagraphStyle(
-                name='Bold12M', fontName='Helvetica-Bold', fontSize=18, alignment=TA_CENTER
+                name='Bold12M', fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER
             )) if mtm_quantities['12M'] else ""
         ]
     ]
