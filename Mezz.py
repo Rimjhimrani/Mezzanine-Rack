@@ -607,7 +607,7 @@ def main():
                         with open(result_path, 'rb') as pdf_file:
                             pdf_data = pdf_file.read()
                         
-                        status_container.success("✅ Fixed Part No styling - properly centered with 34pt font!")
+                        status_container.success("✅ Downloaded")
                         
                         # Download button
                         st.download_button(
