@@ -250,9 +250,9 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     sticker_content = []
     
     # Define row heights
-    header_row_height = 1.5*cm
+    header_row_height = 1.7*cm
     desc_row_height = 1.5*cm
-    max_capacity_row_height = 0.8*cm
+    max_capacity_row_height = 1.0*cm
     store_loc_row_height = 1.2*cm
 
     # Main table data
