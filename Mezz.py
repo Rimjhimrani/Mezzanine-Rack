@@ -57,33 +57,52 @@ bold_style = ParagraphStyle(
 
 def get_dynamic_desc_style(text):
     """
-    Font size starts at 30 for <=10 chars and decreases down to 14 for 125+ chars.
-    This keeps text inside the fixed height cell by auto-scaling with proper wrapping.
+    Improved dynamic font sizing with more granular steps.
+    Font size decreases gradually from 30px to 10px based on text length.
+    Box dimensions remain unchanged.
     """
     length = len(text)
-    max_chars = 125
-    max_font = 30
-    min_font = 14
-
+    
+    # More granular font size breakpoints for better scaling
     if length <= 10:
-        font_size = max_font
-    elif length >= max_chars:
-        font_size = min_font
+        font_size = 30
+    elif length <= 15:
+        font_size = 28
+    elif length <= 20:
+        font_size = 26
+    elif length <= 25:
+        font_size = 24
+    elif length <= 35:
+        font_size = 22
+    elif length <= 45:
+        font_size = 20
+    elif length <= 55:
+        font_size = 18
+    elif length <= 65:
+        font_size = 16
+    elif length <= 75:
+        font_size = 14
+    elif length <= 85:
+        font_size = 12
     else:
-        font_size = max_font - (length - 10) * (max_font - min_font) / (max_chars - 10)
-
+        font_size = 10  # Minimum font size
+    
+    # Calculate appropriate leading (line spacing)
+    leading = font_size + 2
+    
     return ParagraphStyle(
         name='DescriptionDynamic',
         fontName='Helvetica',
         fontSize=font_size,
         alignment=TA_LEFT,
-        leading=font_size + 2,
+        leading=leading,
         wordWrap='CJK',  # Enable word wrapping
         splitLongWords=1,  # Allow splitting of long words
         spaceBefore=3,
-        spaceAfter=3
+        spaceAfter=3,
+        allowWidows=1,    # Allow single lines at end of paragraph
+        allowOrphans=1,   # Allow single lines at start of paragraph
     )
-
 qty_style = ParagraphStyle(
     name='Quantity', 
     fontName='Helvetica', 
