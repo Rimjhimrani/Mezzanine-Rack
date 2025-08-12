@@ -49,7 +49,7 @@ except ImportError:
 bold_style = ParagraphStyle(
     name='Bold', 
     fontName='Helvetica-Bold', 
-    fontSize=40, 
+    fontSize=38, 
     alignment=TA_CENTER, 
     leading=38,
     wordWrap='CJK'  # Enable word wrapping
@@ -384,7 +384,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
 
     # Store Location section
     store_loc_label = Paragraph("Store Location", ParagraphStyle(
-        name='StoreLoc', fontName='Helvetica-Bold', fontSize=20, alignment=TA_CENTER
+        name='StoreLoc', fontName='Helvetica-Bold', fontSize=18, alignment=TA_CENTER
     ))
     
     inner_table_width = CONTENT_BOX_WIDTH * 2 / 3
@@ -404,7 +404,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 18),  # Reduced font size for better fit
+        ('FONTSIZE', (0, 0), (-1, -1), 16),  # Reduced font size for better fit
         # ADDED PADDING FOR STORE LOCATION CELLS
         ('LEFTPADDING', (0, 0), (-1, -1), 2),
         ('RIGHTPADDING', (0, 0), (-1, -1), 2),
