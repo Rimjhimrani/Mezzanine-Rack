@@ -400,17 +400,17 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         rowHeights=[store_loc_row_height]
     )
     
-    store_loc_inner_table.setStyle(TableStyle([
+     store_loc_inner_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 18),  # Reduced font size for better fit
-        # Equalized smaller padding for perfect vertical centerin
+        # ADDED PADDING FOR STORE LOCATION CELLS
         ('LEFTPADDING', (0, 0), (-1, -1), 2),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 2)
-        ('TOPPADDING', (0, 0), (-1, -1), 2),   
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         # Enable text wrapping
         ('WORDWRAP', (0, 0), (-1, -1), True),
     ]))
@@ -425,11 +425,11 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        # Equalized smaller padding for section balance
+        # ADDED PADDING FOR STORE LOCATION SECTION
         ('LEFTPADDING', (0, 0), (-1, -1), 8),
         ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),   
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
     
     sticker_content.append(store_loc_table)
