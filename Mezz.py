@@ -435,6 +435,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     sticker_content.append(Spacer(1, 0.1*cm))
 
     # Bottom section - MTM boxes and QR code
+    # Bottom section - MTM boxes and QR code (UPDATED FOR BETTER QR CENTERING
     mtm_box_width = 1.8*cm
     mtm_row_height = 2.0*cm
 
@@ -467,7 +468,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('FONTSIZE', (0, 0), (-1, -1), 18),
     ]))
 
-    # QR code table
+    # QR code table (IMPROVED CENTERING)
     qr_width = 2.5*cm
     qr_height = 2.5*cm
 
@@ -493,19 +494,24 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 
-    # Calculate spacing for bottom row
+    # Calculate spacing for better QR code centering
     total_mtm_width = 3 * mtm_box_width
-    spacer_width = CONTENT_BOX_WIDTH - total_mtm_width - qr_width
+    remaining_width = CONTENT_BOX_WIDTH - total_mtm_width - qr_width
+    
+    # Split the remaining space more evenly for better centering
+    left_spacer_width = remaining_width * 0.3   # 30% on left
+    right_spacer_width = remaining_width * 0.7  # 70% on right
 
-    # Combine MTM boxes and QR code in one row
+    # Combine MTM boxes and QR code in one row with better spacing
     bottom_row = Table(
-        [[mtm_table, "", qr_table]],
-        colWidths=[total_mtm_width, spacer_width, qr_width],
+        [[mtm_table, "", qr_table, ""]],
+        colWidths=[total_mtm_width, left_spacer_width, qr_width, right_spacer_width],
         rowHeights=[max(mtm_row_height, qr_height)]
     )
 
     bottom_row.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),     # MTM boxes aligned left
+        ('ALIGN', (2, 0), (2, 0), 'CENTER'),   # QR code centered
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 
