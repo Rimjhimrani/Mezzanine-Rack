@@ -412,7 +412,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('TOPPADDING', (0, 0), (-1, -1), 2),   
         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
         # Enable text wrapping
-        ('WORDWRAP', (0, 0), (-1, -1), True)
+        ('WORDWRAP', (0, 0), (-1, -1), True),
     ]))
     
     store_loc_table = Table(
