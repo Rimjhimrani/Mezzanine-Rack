@@ -191,7 +191,7 @@ def generate_qr_code(data_string):
         qr_img.save(img_buffer, format='PNG')
         img_buffer.seek(0)
         
-        return Image(img_buffer, width=2.5*cm, height=2.5*cm)
+        return Image(img_buffer, width=2.2*cm, height=2.2*cm)
     except Exception as e:
         st.error(f"Error generating QR code: {e}")
         return None
@@ -335,7 +335,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
 
     # Bottom section - MTM boxes and QR code
     mtm_box_width = 1.8*cm
-    mtm_row_height = 2.0*cm
+    mtm_row_height = 1.8*cm
 
     position_matrix_data = [
         ["7M", "9M", "12M"],
