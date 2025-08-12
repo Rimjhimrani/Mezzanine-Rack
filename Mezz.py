@@ -49,22 +49,19 @@ except ImportError:
 bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=40, alignment=TA_CENTER, leading=38)
 def get_dynamic_desc_style(text):
     """
-    Returns a ParagraphStyle for the Description field.
-    Font size starts at 30 for <= 10 characters and decreases smoothly 
-    down to 14 for 125+ characters. Also handles line wrapping automatically.
+    Font size starts at 30 for <=10 chars and decreases down to 14 for 125+ chars.
+    This keeps text inside the fixed height cell by auto-scaling.
     """
     length = len(text)
-
-    max_chars = 125   # max length before minimum font size
-    max_font = 30     # starting font size for very short text
-    min_font = 14     # minimum font size for very long text
+    max_chars = 125
+    max_font = 30
+    min_font = 14
 
     if length <= 10:
         font_size = max_font
     elif length >= max_chars:
         font_size = min_font
     else:
-        # Linear scale between 10 chars (max_font) and max_chars (min_font)
         font_size = max_font - (length - 10) * (max_font - min_font) / (max_chars - 10)
 
     return ParagraphStyle(
