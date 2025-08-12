@@ -426,8 +426,8 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         # ADDED PADDING FOR STORE LOCATION SECTION
         ('LEFTPADDING', (0, 0), (-1, -1), 8),
         ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
     sticker_content.append(store_loc_table)
 
