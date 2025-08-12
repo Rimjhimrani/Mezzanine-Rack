@@ -46,9 +46,9 @@ except ImportError:
     QR_AVAILABLE = True
 
 # Define paragraph styles
-bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=40, alignment=TA_LEFT, leading=14)
-desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=30, alignment=TA_LEFT, leading=12)
-qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=30, alignment=TA_CENTER, leading=12)
+bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=40, alignment=TA_LEFT, leading=10)
+desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=30, alignment=TA_LEFT, leading=10)
+qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=30, alignment=TA_CENTER, leading=10)
 
 def find_bus_model_column(df_columns):
     """Enhanced function to find the bus model column with better detection"""
@@ -325,13 +325,13 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ["7M", "9M", "12M"],
         [
             Paragraph(f"<b>{mtm_quantities['7M']}</b>", ParagraphStyle(
-                name='Bold7M', fontName='Helvetica-Bold', fontSize=30, alignment=TA_CENTER
+                name='Bold7M', fontName='Helvetica-Bold', fontSize=18, alignment=TA_CENTER
             )) if mtm_quantities['7M'] else "",
             Paragraph(f"<b>{mtm_quantities['9M']}</b>", ParagraphStyle(
-                name='Bold9M', fontName='Helvetica-Bold', fontSize=30, alignment=TA_CENTER
+                name='Bold9M', fontName='Helvetica-Bold', fontSize=18, alignment=TA_CENTER
             )) if mtm_quantities['9M'] else "",
             Paragraph(f"<b>{mtm_quantities['12M']}</b>", ParagraphStyle(
-                name='Bold12M', fontName='Helvetica-Bold', fontSize=30, alignment=TA_CENTER
+                name='Bold12M', fontName='Helvetica-Bold', fontSize=18, alignment=TA_CENTER
             )) if mtm_quantities['12M'] else ""
         ]
     ]
