@@ -252,7 +252,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     # Define row heights - ADJUSTED FOR BETTER FIT
     header_row_height = 2.0*cm  # Increased for better spacing
     desc_row_height = 1.5*cm
-    max_capacity_row_height = 1.5*cm
+    max_capacity_row_height = 1.35*cm
     store_loc_row_height = 1.2*cm
 
     # Main table data with improved Part No styling
