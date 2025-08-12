@@ -45,12 +45,20 @@ except ImportError:
     import qrcode
     QR_AVAILABLE = True
 
-# Define paragraph styles - UPDATED FONT SIZES
-bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=40, alignment=TA_CENTER, leading=38)
+# Define paragraph styles - UPDATED FONT SIZES WITH WORD WRAPPING
+bold_style = ParagraphStyle(
+    name='Bold', 
+    fontName='Helvetica-Bold', 
+    fontSize=40, 
+    alignment=TA_CENTER, 
+    leading=38,
+    wordWrap='CJK'  # Enable word wrapping
+)
+
 def get_dynamic_desc_style(text):
     """
     Font size starts at 30 for <=10 chars and decreases down to 14 for 125+ chars.
-    This keeps text inside the fixed height cell by auto-scaling.
+    This keeps text inside the fixed height cell by auto-scaling with proper wrapping.
     """
     length = len(text)
     max_chars = 125
@@ -69,9 +77,59 @@ def get_dynamic_desc_style(text):
         fontName='Helvetica',
         fontSize=font_size,
         alignment=TA_LEFT,
-        leading=font_size + 2
+        leading=font_size + 2,
+        wordWrap='CJK',  # Enable word wrapping
+        splitLongWords=1,  # Allow splitting of long words
+        spaceBefore=3,
+        spaceAfter=3
     )
-qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=22, alignment=TA_CENTER, leading=22)
+
+qty_style = ParagraphStyle(
+    name='Quantity', 
+    fontName='Helvetica', 
+    fontSize=22, 
+    alignment=TA_CENTER, 
+    leading=22,
+    wordWrap='CJK'  # Enable word wrapping
+)
+
+def clean_number_format(value):
+    """
+    Clean number formatting to preserve integers and handle decimals properly.
+    Returns string representation maintaining original number format.
+    """
+    if pd.isna(value) or value == '':
+        return ''
+    
+    # Handle string values
+    if isinstance(value, str):
+        value = value.strip()
+        if value == '':
+            return ''
+        # Try to convert to number to check if it's numeric
+        try:
+            num_value = float(value)
+            # If it's a whole number, return as integer
+            if num_value.is_integer():
+                return str(int(num_value))
+            else:
+                return str(num_value)
+        except:
+            return value
+    
+    # Handle numeric values
+    if isinstance(value, (int, float)):
+        # If it's a float that represents a whole number
+        if isinstance(value, float) and value.is_integer():
+            return str(int(value))
+        # If it's already an integer
+        elif isinstance(value, int):
+            return str(value)
+        # If it's a decimal
+        else:
+            return str(value)
+    
+    return str(value)
 
 def find_bus_model_column(df_columns):
     """Enhanced function to find the bus model column with better detection"""
@@ -112,10 +170,7 @@ def detect_bus_model_and_qty(row, qty_veh_col, bus_model_col=None):
     if qty_veh_col and qty_veh_col in row and pd.notna(row[qty_veh_col]):
         qty_veh_raw = row[qty_veh_col]
         if pd.notna(qty_veh_raw):
-            if isinstance(qty_veh_raw, float) and qty_veh_raw.is_integer():
-                qty_veh = str(int(qty_veh_raw))
-            else:
-                qty_veh = str(qty_veh_raw).strip()
+            qty_veh = clean_number_format(qty_veh_raw)
 
     if not qty_veh:
         return result
@@ -226,12 +281,12 @@ def extract_store_location_data_from_excel(row_data):
             if name in row_data:
                 val = row_data[name]
                 if pd.notna(val) and str(val).lower() not in ['nan', 'none', 'null', '']:
-                    return str(val).strip()
+                    return clean_number_format(val)
             for col in row_data.index:
                 if isinstance(col, str) and col.upper() == name.upper():
                     val = row_data[col]
                     if pd.notna(val) and str(val).lower() not in ['nan', 'none', 'null', '']:
-                        return str(val).strip()
+                        return clean_number_format(val)
         return default
     
     store_loc_1 = get_clean_value(['Store Loc 1', 'STORE_LOC_1', 'Station Name', 'STATION NAME'], '')
@@ -247,19 +302,19 @@ def extract_store_location_data_from_excel(row_data):
 
 def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_col, store_loc_col, bus_model_col):
     """Create a single sticker layout with border around the entire sticker"""
-    # Extract data
-    part_no = str(row[part_no_col]) if pd.notna(row[part_no_col]) else ""
-    desc = str(row[desc_col]) if pd.notna(row[desc_col]) else ""
+    # Extract data with proper number formatting
+    part_no = clean_number_format(row[part_no_col]) if pd.notna(row[part_no_col]) else ""
+    desc = str(row[desc_col]).strip() if pd.notna(row[desc_col]) else ""
     
     max_capacity = ""
     if max_capacity_col and max_capacity_col in row and pd.notna(row[max_capacity_col]):
-        max_capacity = str(row[max_capacity_col])
+        max_capacity = clean_number_format(row[max_capacity_col])
         
     qty_veh = ""
     if qty_veh_col and qty_veh_col in row and pd.notna(row[qty_veh_col]):
-        qty_veh = str(row[qty_veh_col])
+        qty_veh = clean_number_format(row[qty_veh_col])
     
-    store_location = str(row[store_loc_col]) if store_loc_col and store_loc_col in row and pd.notna(row[store_loc_col]) else ""
+    store_location = clean_number_format(row[store_loc_col]) if store_loc_col and store_loc_col in row and pd.notna(row[store_loc_col]) else ""
 
     # Use enhanced bus model detection
     mtm_quantities = detect_bus_model_and_qty(row, qty_veh_col, bus_model_col)
@@ -274,23 +329,23 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     
     # Define row heights - ADJUSTED FOR BETTER FIT
     header_row_height = 2.0*cm  # Increased for better spacing
-    desc_row_height = 1.5*cm
+    desc_row_height = 1.8*cm    # Increased for better text wrapping
     max_capacity_row_height = 1.32*cm
     store_loc_row_height = 1.2*cm
 
-    # Main table data with improved Part No styling
+    # Main table data with improved Part No styling and proper wrapping
     main_table_data = [
         ["Part No", Paragraph(f"{part_no}", bold_style)],
         ["Description", Paragraph(desc, get_dynamic_desc_style(desc))],
         ["Max capacity", Paragraph(str(max_capacity), qty_style)]
     ]
 
-    # Create main table with IMPROVED PADDING
+    # Create main table with IMPROVED PADDING and wrapping
     main_table = Table(main_table_data,
                      colWidths=[CONTENT_BOX_WIDTH/3, CONTENT_BOX_WIDTH*2/3],
                      rowHeights=[header_row_height, desc_row_height, max_capacity_row_height])
 
-    # UPDATED TABLE STYLE WITH PROPER PADDING
+    # UPDATED TABLE STYLE WITH PROPER PADDING AND WRAPPING SUPPORT
     main_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -300,8 +355,10 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         # ADDED PROPER PADDING FOR ALL CELLS
         ('LEFTPADDING', (0, 0), (-1, -1), 8),
         ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        # Enable text wrapping in cells
+        ('WORDWRAP', (0, 0), (-1, -1), True),
     ]))
 
     sticker_content.append(main_table)
@@ -328,12 +385,14 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 20),
+        ('FONTSIZE', (0, 0), (-1, -1), 18),  # Reduced font size for better fit
         # ADDED PADDING FOR STORE LOCATION CELLS
-        ('LEFTPADDING', (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 2),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 2),
         ('TOPPADDING', (0, 0), (-1, -1), 4),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        # Enable text wrapping
+        ('WORDWRAP', (0, 0), (-1, -1), True),
     ]))
     
     store_loc_table = Table(
@@ -552,7 +611,7 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         if status_callback:
             status_callback(error_msg)
         return None
-
+        
 def main():
     """Main Streamlit application"""
     st.set_page_config(page_title="Mezzanine Label Generator", page_icon="🏷️", layout="wide")
