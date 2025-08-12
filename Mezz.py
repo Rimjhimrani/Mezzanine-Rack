@@ -47,7 +47,7 @@ except ImportError:
 
 # Define paragraph styles - UPDATED FONT SIZES
 bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=40, alignment=TA_CENTER, leading=38)
-desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=30, alignment=TA_CENTER, leading=26)
+desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=26, alignment=TA_LEFT, leading=26)
 qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=22, alignment=TA_CENTER, leading=22)
 
 def find_bus_model_column(df_columns):
@@ -305,7 +305,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 22),
+        ('FONTSIZE', (0, 0), (-1, -1), 20),
         # ADDED PADDING FOR STORE LOCATION CELLS
         ('LEFTPADDING', (0, 0), (-1, -1), 4),
         ('RIGHTPADDING', (0, 0), (-1, -1), 4),
