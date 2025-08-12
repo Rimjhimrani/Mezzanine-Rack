@@ -283,7 +283,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     ))
     
     inner_table_width = CONTENT_BOX_WIDTH * 2 / 3
-    col_proportions = [1.4, 1.2, 0.8, 1, 0.6, 0.8, 0.6, 0.8]
+    col_proportions = [1.4, 1.2, 0.6, 1.2, 0.6, 0.8, 0.6, 0.8]
     total_proportion = sum(col_proportions)
     inner_col_widths = [w * inner_table_width / total_proportion for w in col_proportions]
 
