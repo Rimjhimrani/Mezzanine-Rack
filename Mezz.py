@@ -16,12 +16,12 @@ import tempfile
 
 # Define sticker dimensions - Updated for 2 per page
 STICKER_WIDTH = 18 * cm
-STICKER_HEIGHT = 8.5 * cm
+STICKER_HEIGHT = 8.8 * cm
 STICKER_PAGESIZE = A4
 
 # Define content box dimensions (reduced to fit 2 per page)
 CONTENT_BOX_WIDTH = 18 * cm
-CONTENT_BOX_HEIGHT = 8.5 * cm
+CONTENT_BOX_HEIGHT = 8.8 * cm
 
 # Check for PIL and install if needed
 try:
@@ -350,7 +350,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     header_row_height = 2.0*cm  # Increased for better spacing
     desc_row_height = 1.8*cm    # Increased for better text wrapping
     max_capacity_row_height = 1.32*cm
-    store_loc_row_height = 1.2*cm
+    store_loc_row_height = 1.3*cm
 
     # Main table data with improved Part No styling and proper wrapping
     main_table_data = [
@@ -436,7 +436,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
 
     # Bottom section - MTM boxes and QR code
     mtm_box_width = 1.8*cm
-    mtm_row_height = 1.8*cm
+    mtm_row_height = 2.0*cm
 
     position_matrix_data = [
         ["7M", "9M", "12M"],
