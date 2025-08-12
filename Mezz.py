@@ -424,7 +424,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 4),   # Reduced padding
         ('RIGHTPADDING', (0, 0), (-1, -1), 4),  # Reduced padding
-        ('TOPPADDING', (0, 0), (-1, -1), 4),    # Reduced padding
+        ('TOPPADDING', (0, 0), (-1, -1), 0),    # Reduced padding
         ('BOTTOMPADDING', (0, 0), (-1, -1), 4), # Reduced padding
     ]))
     
