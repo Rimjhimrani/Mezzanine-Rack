@@ -46,9 +46,9 @@ except ImportError:
     QR_AVAILABLE = True
 
 # Define paragraph styles
-bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=30, alignment=TA_LEFT, leading=10)
-desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=24, alignment=TA_LEFT, leading=10)
-qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=24, alignment=TA_CENTER, leading=10)
+bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=30, alignment=TA_CENTER, leading=10)
+desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=24, alignment=TA_CENTER, leading=10)
+qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=20, alignment=TA_CENTER, leading=10)
 
 def find_bus_model_column(df_columns):
     """Enhanced function to find the bus model column with better detection"""
