@@ -20,8 +20,8 @@ STICKER_HEIGHT = 8 * cm
 STICKER_PAGESIZE = A4
 
 # Define content box dimensions (reduced to fit 2 per page)
-CONTENT_BOX_WIDTH = 17 * cm
-CONTENT_BOX_HEIGHT = 7.5 * cm
+CONTENT_BOX_WIDTH = 18 * cm
+CONTENT_BOX_HEIGHT = 8 * cm
 
 # Check for PIL and install if needed
 try:
@@ -46,9 +46,9 @@ except ImportError:
     QR_AVAILABLE = True
 
 # Define paragraph styles
-bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=16, alignment=TA_LEFT, leading=14)
-desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=14, alignment=TA_LEFT, leading=12)
-qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=14, alignment=TA_CENTER, leading=12)
+bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=40, alignment=TA_LEFT, leading=14)
+desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=30, alignment=TA_LEFT, leading=12)
+qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=30, alignment=TA_CENTER, leading=12)
 
 def find_bus_model_column(df_columns):
     """Enhanced function to find the bus model column with better detection"""
@@ -272,7 +272,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (0, -1), 14),
+        ('FONTSIZE', (0, 0), (0, -1), 20),
     ]))
 
     sticker_content.append(main_table)
@@ -325,13 +325,13 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ["7M", "9M", "12M"],
         [
             Paragraph(f"<b>{mtm_quantities['7M']}</b>", ParagraphStyle(
-                name='Bold7M', fontName='Helvetica-Bold', fontSize=12, alignment=TA_CENTER
+                name='Bold7M', fontName='Helvetica-Bold', fontSize=30, alignment=TA_CENTER
             )) if mtm_quantities['7M'] else "",
             Paragraph(f"<b>{mtm_quantities['9M']}</b>", ParagraphStyle(
-                name='Bold9M', fontName='Helvetica-Bold', fontSize=12, alignment=TA_CENTER
+                name='Bold9M', fontName='Helvetica-Bold', fontSize=30, alignment=TA_CENTER
             )) if mtm_quantities['9M'] else "",
             Paragraph(f"<b>{mtm_quantities['12M']}</b>", ParagraphStyle(
-                name='Bold12M', fontName='Helvetica-Bold', fontSize=12, alignment=TA_CENTER
+                name='Bold12M', fontName='Helvetica-Bold', fontSize=30, alignment=TA_CENTER
             )) if mtm_quantities['12M'] else ""
         ]
     ]
@@ -347,7 +347,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 14),
+        ('FONTSIZE', (0, 0), (-1, -1), 18),
     ]))
 
     # QR code table
