@@ -46,7 +46,7 @@ except ImportError:
     QR_AVAILABLE = True
 
 # Define paragraph styles - UPDATED FONT SIZES
-bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=36, alignment=TA_CENTER, leading=38)
+bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=40, alignment=TA_CENTER, leading=38)
 desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=24, alignment=TA_CENTER, leading=26)
 qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=20, alignment=TA_CENTER, leading=22)
 
