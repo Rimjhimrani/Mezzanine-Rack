@@ -315,7 +315,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     sticker_content.append(store_loc_table)
 
     # Add small spacer
-    sticker_content.append(Spacer(1, 0.0*cm))
+    sticker_content.append(Spacer(1, 0.1*cm))
 
     # Bottom section - MTM boxes and QR code
     mtm_box_width = 2.0*cm
