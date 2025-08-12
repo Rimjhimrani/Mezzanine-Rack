@@ -400,7 +400,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         rowHeights=[store_loc_row_height]
     )
     
-     store_loc_inner_table.setStyle(TableStyle([
+    store_loc_inner_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
