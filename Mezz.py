@@ -16,12 +16,12 @@ import tempfile
 
 # Define sticker dimensions - Updated for 2 per page
 STICKER_WIDTH = 18 * cm
-STICKER_HEIGHT = 8.2 * cm
+STICKER_HEIGHT = 8.5 * cm
 STICKER_PAGESIZE = A4
 
 # Define content box dimensions (reduced to fit 2 per page)
 CONTENT_BOX_WIDTH = 18 * cm
-CONTENT_BOX_HEIGHT = 8.2 * cm
+CONTENT_BOX_HEIGHT = 8.5 * cm
 
 # Check for PIL and install if needed
 try:
@@ -191,7 +191,7 @@ def generate_qr_code(data_string):
         qr_img.save(img_buffer, format='PNG')
         img_buffer.seek(0)
         
-        return Image(img_buffer, width=2.2*cm, height=2.2*cm)
+        return Image(img_buffer, width=2.5*cm, height=2.5*cm)
     except Exception as e:
         st.error(f"Error generating QR code: {e}")
         return None
@@ -252,7 +252,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     # Define row heights - ADJUSTED FOR BETTER FIT
     header_row_height = 2.0*cm  # Increased for better spacing
     desc_row_height = 1.5*cm
-    max_capacity_row_height = 1.0*cm
+    max_capacity_row_height = 1.5*cm
     store_loc_row_height = 1.2*cm
 
     # Main table data with improved Part No styling
@@ -334,8 +334,8 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     sticker_content.append(Spacer(1, 0.1*cm))
 
     # Bottom section - MTM boxes and QR code
-    mtm_box_width = 2.0*cm
-    mtm_row_height = 1.7*cm
+    mtm_box_width = 1.8*cm
+    mtm_row_height = 2.0*cm
 
     position_matrix_data = [
         ["7M", "9M", "12M"],
