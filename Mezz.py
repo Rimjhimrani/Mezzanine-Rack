@@ -47,7 +47,7 @@ except ImportError:
 
 # Define paragraph styles - UPDATED FONT SIZES
 bold_style = ParagraphStyle(name='Bold', fontName='Helvetica-Bold', fontSize=40, alignment=TA_CENTER, leading=38)
-desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=26, alignment=TA_LEFT, leading=26)
+desc_style = ParagraphStyle(name='Description', fontName='Helvetica', fontSize=24, alignment=TA_LEFT, leading=26)
 qty_style = ParagraphStyle(name='Quantity', fontName='Helvetica', fontSize=22, alignment=TA_CENTER, leading=22)
 
 def find_bus_model_column(df_columns):
@@ -285,7 +285,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
 
     # Store Location section
     store_loc_label = Paragraph("Store Location", ParagraphStyle(
-        name='StoreLoc', fontName='Helvetica-Bold', fontSize=22, alignment=TA_CENTER
+        name='StoreLoc', fontName='Helvetica-Bold', fontSize=20, alignment=TA_CENTER
     ))
     
     inner_table_width = CONTENT_BOX_WIDTH * 2 / 3
