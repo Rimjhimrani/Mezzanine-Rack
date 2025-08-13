@@ -529,16 +529,16 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
      )
 
      store_loc_inner_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 16),  # Consistent font size
-        ('LEFTPADDING', (0, 0), (-1, -1), 2),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 2),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('WORDWRAP', (0, 0), (-1, -1), True),
+         ('GRID', (0, 0), (-1, -1), 1, colors.black),
+         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+         ('FONTSIZE', (0, 0), (-1, -1), 16),  # Consistent font size
+         ('LEFTPADDING', (0, 0), (-1, -1), 2),
+         ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+         ('TOPPADDING', (0, 0), (-1, -1), 2),
+         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+         ('WORDWRAP', (0, 0), (-1, -1), True),
     ]))
 
     # Also add debugging - insert this right after extracting store_loc_values:
