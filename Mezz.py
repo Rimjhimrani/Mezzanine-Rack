@@ -495,54 +495,54 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
 
     sticker_content.append(main_table)
 
+    # In the create_single_sticker function, replace this section:
     # Store Location section with all 8 values
     store_loc_label = Paragraph("Store Location", ParagraphStyle(
-        name='StoreLoc', fontName='Helvetica-Bold', fontSize=20, alignment=TA_CENTER
+        name='StoreLoc', fontName='Helvetica-Bold', fontSize=20, alignment=TA_CENTE
     ))
-    
+
     inner_table_width = CONTENT_BOX_WIDTH * 2 / 3
     col_proportions = [1.4, 1.2, 0.6, 1.2, 0.6, 0.8, 0.6, 0.8]
     total_proportion = sum(col_proportions)
     inner_col_widths = [w * inner_table_width / total_proportion for w in col_proportions]
 
-    # Use the extracted store location values (all 8)
-    store_loc_inner_table = Table(
-        [store_loc_values],
-        colWidths=inner_col_widths,
-        rowHeights=[store_loc_row_height]
-    )
-    
-    store_loc_inner_table.setStyle(TableStyle([
+    # Convert store location values to Paragraph objects for better display
+    store_loc_paragraphs = []
+    for val in store_loc_values:
+        if val:  # Only create paragraph if value exists
+            store_loc_paragraphs.append(
+                Paragraph(str(val), ParagraphStyle(
+                    name='StoreLocValue', 
+                    fontName='Helvetica', 
+                    fontSize=16, 
+                    alignment=TA_CENTER,
+                    wordWrap='CJK'
+                ))
+            )
+        else:
+            store_loc_paragraphs.append("")  # Empty cell for missing values
+     # Use the converted paragraphs instead of raw values
+     store_loc_inner_table = Table(
+         [store_loc_paragraphs],  # Changed from store_loc_values to store_loc_paragraphs
+         colWidths=inner_col_widths,
+         rowHeights=[store_loc_row_height]
+     )
+
+     store_loc_inner_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 18),  # Reduced font size for better fit
-        # ADDED PADDING FOR STORE LOCATION CELLS
+        ('FONTSIZE', (0, 0), (-1, -1), 16),  # Consistent font size
         ('LEFTPADDING', (0, 0), (-1, -1), 2),
         ('RIGHTPADDING', (0, 0), (-1, -1), 2),
         ('TOPPADDING', (0, 0), (-1, -1), 2),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        # Enable text wrapping
         ('WORDWRAP', (0, 0), (-1, -1), True),
     ]))
-    
-    store_loc_table = Table(
-        [[store_loc_label, store_loc_inner_table]],
-        colWidths=[CONTENT_BOX_WIDTH/3, inner_table_width],
-        rowHeights=[store_loc_row_height]
-    )
-    
-    store_loc_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        # ADDED PADDING FOR STORE LOCATION SECTION
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-    ]))
+
+    # Also add debugging - insert this right after extracting store_loc_values:
+    print(f"DEBUG: Store Location Values: {store_loc_values}")  # Add this line for debugg
     
     sticker_content.append(store_loc_table)
 
