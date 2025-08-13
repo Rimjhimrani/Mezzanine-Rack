@@ -498,7 +498,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     # In the create_single_sticker function, replace this section:
     # Store Location section with all 8 values
     store_loc_label = Paragraph("Store Location", ParagraphStyle(
-        name='StoreLoc', fontName='Helvetica-Bold', fontSize=20, alignment=TA_CENTE
+        name='StoreLoc', fontName='Helvetica-Bold', fontSize=20, alignment=TA_CENTER
     ))
 
     inner_table_width = CONTENT_BOX_WIDTH * 2 / 3
