@@ -332,15 +332,20 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     qty_veh = ""
     if qty_veh_col and qty_veh_col in row and pd.notna(row[qty_veh_col]):
         qty_veh = clean_number_format(row[qty_veh_col])
-    
+    # Get all store location parts for table and QR code
     store_loc_values = extract_store_location_data_from_excel(row)
     full_store_location = " ".join([str(v) for v in store_loc_values if v])  # join non-empty values
     # Use enhanced bus model detection
     mtm_quantities = detect_bus_model_and_qty(row, qty_veh_col, bus_model_col)
 
-    # Generate QR code with full store location
-    qr_data = f"Part No: {part_no}\nDescription: {desc}\nMax Capacity: {max_capacity}\n"
-    qr_data += f"Store Location: {full_store_location}\nQTY/VEH: {qty_veh}"
+    # ✅ Generate QR code only once, with full store location
+    qr_data = (
+        f"Part No: {part_no}\n"
+        f"Description: {desc}\n"
+        f"Max Capacity: {max_capacity}\n"
+        f"Store Location: {full_store_location}\n"
+        f"QTY/VEH: {qty_veh}"
+    )
     
     qr_image = generate_qr_code(qr_data)
     
