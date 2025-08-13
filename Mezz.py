@@ -103,6 +103,7 @@ def get_dynamic_desc_style(text):
         allowWidows=1,    # Allow single lines at end of paragraph
         allowOrphans=1,   # Allow single lines at start of paragraph
     )
+
 qty_style = ParagraphStyle(
     name='Quantity', 
     fontName='Helvetica', 
@@ -293,33 +294,143 @@ def generate_qr_code(data_string):
         st.error(f"Error generating QR code: {e}")
         return None
 
-def extract_store_location_data_from_excel(row_data):
-    """Extract store location data from Excel row for Store Location"""
-    def get_clean_value(possible_names, default=''):
-        for name in possible_names:
-            if name in row_data:
-                val = row_data[name]
-                if pd.notna(val) and str(val).lower() not in ['nan', 'none', 'null', '']:
-                    return clean_number_format(val)
-            for col in row_data.index:
-                if isinstance(col, str) and col.upper() == name.upper():
-                    val = row_data[col]
+def auto_detect_store_location_columns(df):
+    """Auto-detect Store Location columns from DataFrame"""
+    store_loc_columns = []
+    
+    # Look for columns that match store location patterns
+    for col in df.columns:
+        if isinstance(col, str):
+            col_upper = col.upper()
+            
+            # Check for Store Loc pattern
+            if 'STORE' in col_upper and ('LOC' in col_upper or 'LOCATION' in col_upper):
+                store_loc_columns.append(col)
+            # Check for numbered store columns
+            elif any(f'STORE{i}' in col_upper.replace(' ', '').replace('_', '') for i in range(1, 9)):
+                store_loc_columns.append(col)
+            # Check for ABB specific columns
+            elif col_upper in ['ABB ZONE', 'ABB LOCATION', 'ABB FLOOR', 'ABB RACK NO', 'ABB LEVEL', 'ABB CELL']:
+                store_loc_columns.append(col)
+            # Check for generic location terms
+            elif col_upper in ['STATION NAME', 'ZONE', 'FLOOR', 'RACK', 'LEVEL', 'CELL']:
+                store_loc_columns.append(col)
+    
+    # Sort by column name to maintain order
+    store_loc_columns.sort()
+    
+    # Ensure we have exactly 8 columns, pad with empty strings if needed
+    while len(store_loc_columns) < 8:
+        store_loc_columns.append('')
+    
+    return store_loc_columns[:8]  # Take only first 8
+
+def extract_store_location_data_from_excel(row_data, store_loc_columns=None):
+    """Enhanced Store Location extraction with better column detection"""
+    if store_loc_columns is None:
+        # Use original detection method as fallback
+        def get_clean_value(possible_names, default=''):
+            # First try exact matches from the possible names list
+            for name in possible_names:
+                if name in row_data:
+                    val = row_data[name]
                     if pd.notna(val) and str(val).lower() not in ['nan', 'none', 'null', '']:
                         return clean_number_format(val)
-        return default
+            
+            # Then try case-insensitive matching
+            for name in possible_names:
+                for col in row_data.index:
+                    if isinstance(col, str) and col.upper() == name.upper():
+                        val = row_data[col]
+                        if pd.notna(val) and str(val).lower() not in ['nan', 'none', 'null', '']:
+                            return clean_number_format(val)
+            
+            # Finally try partial matching for more flexible detection
+            for name in possible_names:
+                name_upper = name.upper()
+                for col in row_data.index:
+                    if isinstance(col, str):
+                        col_upper = col.upper()
+                        # Check if the column name contains key parts of our search term
+                        if any(part in col_upper for part in name_upper.split() if len(part) > 2):
+                            val = row_data[col]
+                            if pd.notna(val) and str(val).lower() not in ['nan', 'none', 'null', '']:
+                                return clean_number_format(val)
+            
+            return default
+        
+        # Try to find Store Location columns with more comprehensive search patterns
+        store_loc_1 = get_clean_value([
+            'Store Loc 1', 'STORE_LOC_1', 'Store Location 1', 'STORE LOCATION 1',
+            'Station Name', 'STATION NAME', 'Station', 'STATION',
+            'Store_Loc_1', 'StoreLocation1', 'Store1'
+        ], '')
+        
+        store_loc_2 = get_clean_value([
+            'Store Loc 2', 'STORE_LOC_2', 'Store Location 2', 'STORE LOCATION 2',
+            'Store Location', 'STORE LOCATION', 'Location', 'LOCATION',
+            'Store_Loc_2', 'StoreLocation2', 'Store2'
+        ], '')
+        
+        store_loc_3 = get_clean_value([
+            'Store Loc 3', 'STORE_LOC_3', 'Store Location 3', 'STORE LOCATION 3',
+            'ABB ZONE', 'Zone', 'ZONE', 'Abb Zone',
+            'Store_Loc_3', 'StoreLocation3', 'Store3'
+        ], '')
+        
+        store_loc_4 = get_clean_value([
+            'Store Loc 4', 'STORE_LOC_4', 'Store Location 4', 'STORE LOCATION 4',
+            'ABB LOCATION', 'Location', 'LOCATION', 'Abb Location',
+            'Store_Loc_4', 'StoreLocation4', 'Store4'
+        ], '')
+        
+        store_loc_5 = get_clean_value([
+            'Store Loc 5', 'STORE_LOC_5', 'Store Location 5', 'STORE LOCATION 5',
+            'ABB FLOOR', 'Floor', 'FLOOR', 'Abb Floor',
+            'Store_Loc_5', 'StoreLocation5', 'Store5'
+        ], '')
+        
+        store_loc_6 = get_clean_value([
+            'Store Loc 6', 'STORE_LOC_6', 'Store Location 6', 'STORE LOCATION 6',
+            'ABB RACK NO', 'Rack', 'RACK', 'Abb Rack', 'Rack No', 'RACK NO',
+            'Store_Loc_6', 'StoreLocation6', 'Store6'
+        ], '')
+        
+        store_loc_7 = get_clean_value([
+            'Store Loc 7', 'STORE_LOC_7', 'Store Location 7', 'STORE LOCATION 7',
+            'ABB LEVEL', 'Level', 'LEVEL', 'Abb Level',
+            'Store_Loc_7', 'StoreLocation7', 'Store7'
+        ], '')
+        
+        store_loc_8 = get_clean_value([
+            'Store Loc 8', 'STORE_LOC_8', 'Store Location 8', 'STORE LOCATION 8',
+            'ABB CELL', 'Cell', 'CELL', 'Abb Cell',
+            'Store_Loc_8', 'StoreLocation8', 'Store8'
+        ], '')
+        
+        return [store_loc_1, store_loc_2, store_loc_3, store_loc_4, store_loc_5, store_loc_6, store_loc_7, store_loc_8]
     
-    store_loc_1 = get_clean_value(['Store Loc 1', 'STORE_LOC_1', 'Station Name', 'STATION NAME'], '')
-    store_loc_2 = get_clean_value(['Store Loc 2', 'STORE_LOC_2', 'Store Location', 'STORE LOCATION'], '')
-    store_loc_3 = get_clean_value(['Store Loc 3', 'STORE_LOC_3', 'ABB ZONE', 'Zone'], '')
-    store_loc_4 = get_clean_value(['Store Loc 4', 'STORE_LOC_4', 'ABB LOCATION', 'Location'], '')
-    store_loc_5 = get_clean_value(['Store Loc 5', 'STORE_LOC_5', 'ABB FLOOR', 'Floor'], '')
-    store_loc_6 = get_clean_value(['Store Loc 6', 'STORE_LOC_6', 'ABB RACK NO', 'Rack'], '')
-    store_loc_7 = get_clean_value(['Store Loc 7', 'STORE_LOC_7', 'ABB LEVEL', 'Level'], '')
-    store_loc_8 = get_clean_value(['Store Loc 8', 'STORE_LOC_8', 'ABB CELL', 'Cell'], '')
-    
-    return [store_loc_1, store_loc_2, store_loc_3, store_loc_4, store_loc_5, store_loc_6, store_loc_7, store_loc_8]
+    else:
+        # Use pre-detected columns
+        store_loc_values = []
+        
+        for col in store_loc_columns:
+            if col and col in row_data:
+                val = row_data[col]
+                if pd.notna(val) and str(val).lower() not in ['nan', 'none', 'null', '']:
+                    store_loc_values.append(clean_number_format(val))
+                else:
+                    store_loc_values.append('')
+            else:
+                store_loc_values.append('')
+        
+        # Ensure we always return 8 values
+        while len(store_loc_values) < 8:
+            store_loc_values.append('')
+        
+        return store_loc_values[:8]
 
-def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_col, store_loc_col, bus_model_col):
+def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_col, store_loc_col, bus_model_col, store_loc_columns=None):
     """Create a single sticker layout with border around the entire sticker"""
     # Extract data with proper number formatting
     part_no = clean_number_format(row[part_no_col]) if pd.notna(row[part_no_col]) else ""
@@ -333,14 +444,16 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     if qty_veh_col and qty_veh_col in row and pd.notna(row[qty_veh_col]):
         qty_veh = clean_number_format(row[qty_veh_col])
     
-    store_location = clean_number_format(row[store_loc_col]) if store_loc_col and store_loc_col in row and pd.notna(row[store_loc_col]) else ""
+    # Use enhanced store location extraction
+    store_loc_values = extract_store_location_data_from_excel(row, store_loc_columns)
 
     # Use enhanced bus model detection
     mtm_quantities = detect_bus_model_and_qty(row, qty_veh_col, bus_model_col)
 
-    # Generate QR code
+    # Generate QR code with ALL store location values
+    store_location_text = ' | '.join([str(val) for val in store_loc_values if str(val).strip()])
     qr_data = f"Part No: {part_no}\nDescription: {desc}\nMax Capacity: {max_capacity}\n"
-    qr_data += f"Store Location: {store_location}\nQTY/VEH: {qty_veh}"
+    qr_data += f"Store Location: {store_location_text}\nQTY/VEH: {qty_veh}"
     
     qr_image = generate_qr_code(qr_data)
     
@@ -382,7 +495,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
 
     sticker_content.append(main_table)
 
-    # Store Location section
+    # Store Location section with all 8 values
     store_loc_label = Paragraph("Store Location", ParagraphStyle(
         name='StoreLoc', fontName='Helvetica-Bold', fontSize=20, alignment=TA_CENTER
     ))
@@ -392,8 +505,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     total_proportion = sum(col_proportions)
     inner_col_widths = [w * inner_table_width / total_proportion for w in col_proportions]
 
-    store_loc_values = extract_store_location_data_from_excel(row)
-
+    # Use the extracted store location values (all 8)
     store_loc_inner_table = Table(
         [store_loc_values],
         colWidths=inner_col_widths,
@@ -438,7 +550,6 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     sticker_content.append(Spacer(1, 0.1*cm))
 
     # Bottom section - MTM boxes and QR code
-    # Bottom section - MTM boxes and QR code (UPDATED FOR BETTER QR CENTERING
     mtm_box_width = 1.8*cm
     mtm_row_height = 1.8*cm
 
@@ -542,7 +653,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     return KeepTogether([sticker_table])
 
 def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=None):
-    """Generate sticker labels with QR code from Excel data - 2 per page"""
+    """Generate sticker labels with QR code from Excel data - 2 per page with enhanced Store Location"""
     if status_callback:
         status_callback(f"Processing file: {excel_file_path}")
 
@@ -567,7 +678,17 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
             status_callback(error_msg)
         return None
 
-    # Identify columns
+    # Debug: Show detected Store Location columns
+    if status_callback:
+        status_callback("Detecting Store Location columns...")
+    
+    store_loc_columns = auto_detect_store_location_columns(df)
+    
+    if status_callback:
+        detected_info = f"Detected Store Location columns: {[col if col else '(empty)' for col in store_loc_columns]}"
+        status_callback(detected_info)
+
+    # Identify other columns
     original_columns = df.columns.tolist()
     df.columns = [col.upper() if isinstance(col, str) else col for col in df.columns]
     cols = df.columns.tolist()
@@ -606,10 +727,10 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         if status_callback:
             status_callback(f"Creating stickers {i+1}-{min(i+2, total_rows)} of {total_rows}")
         
-        # First sticker
+        # First sticker - use enhanced function
         sticker1 = create_single_sticker(
             df.iloc[i], part_no_col, desc_col, max_capacity_col, 
-            qty_veh_col, store_loc_col, bus_model_col
+            qty_veh_col, store_loc_col, bus_model_col, store_loc_columns
         )
         all_elements.append(sticker1)
         
@@ -620,7 +741,7 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         if i + 1 < total_rows:
             sticker2 = create_single_sticker(
                 df.iloc[i+1], part_no_col, desc_col, max_capacity_col,
-                qty_veh_col, store_loc_col, bus_model_col
+                qty_veh_col, store_loc_col, bus_model_col, store_loc_columns
             )
             all_elements.append(sticker2)
         
@@ -639,6 +760,27 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         if status_callback:
             status_callback(error_msg)
         return None
+
+def debug_store_location_columns(df):
+    """Debug function to show what Store Location columns are detected"""
+    print("=== DEBUGGING STORE LOCATION COLUMNS ===")
+    print("\nAll columns in DataFrame:")
+    for i, col in enumerate(df.columns):
+        print(f"{i+1:2d}. {col}")
+    
+    print("\nAuto-detected Store Location columns:")
+    detected_cols = auto_detect_store_location_columns(df)
+    for i, col in enumerate(detected_cols, 1):
+        print(f"Store Loc {i}: {col if col else '(empty)'}")
+    
+    print("\nFirst row data for detected columns:")
+    if len(df) > 0:
+        for i, col in enumerate(detected_cols, 1):
+            if col and col in df.columns:
+                value = df[col].iloc[0] if pd.notna(df[col].iloc[0]) else '(empty)'
+                print(f"Store Loc {i} ({col}): {value}")
+    
+    return detected_cols
         
 def main():
     """Main Streamlit application"""
@@ -680,6 +822,25 @@ def main():
             st.subheader("📊 Data Preview (First 5 rows)")
             st.dataframe(preview_df, use_container_width=True)
             
+            # Show detected Store Location columns
+            st.subheader("🔍 Detected Store Location Columns")
+            detected_cols = auto_detect_store_location_columns(preview_df)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                for i in range(4):
+                    if i < len(detected_cols) and detected_cols[i]:
+                        st.info(f"**Store Loc {i+1}:** {detected_cols[i]}")
+                    else:
+                        st.warning(f"**Store Loc {i+1}:** Not detected")
+            
+            with col2:
+                for i in range(4, 8):
+                    if i < len(detected_cols) and detected_cols[i]:
+                        st.info(f"**Store Loc {i+1}:** {detected_cols[i]}")
+                    else:
+                        st.warning(f"**Store Loc {i+1}:** Not detected")
+            
         except Exception as e:
             st.error(f"Error previewing file: {e}")
             return
@@ -704,7 +865,7 @@ def main():
                 
                 try:
                     # Generate the PDF
-                    update_status("Starting optimized label generation...")
+                    update_status("Starting enhanced label generation with Store Location detection...")
                     
                     result_path = generate_sticker_labels(
                         temp_input_path, 
@@ -717,7 +878,7 @@ def main():
                         with open(result_path, 'rb') as pdf_file:
                             pdf_data = pdf_file.read()
                         
-                        status_container.success("✅ Downloaded")
+                        status_container.success("✅ PDF Generated Successfully!")
                         
                         # Download button
                         st.download_button(
@@ -727,6 +888,10 @@ def main():
                             mime="application/pdf",
                             use_container_width=True
                         )
+                        
+                        # Show success message
+                        st.balloons()
+                        st.success("🎉 Your Mezzanine labels are ready! The QR codes now include all Store Location data.")
                         
                     else:
                         status_container.error("❌ Failed to generate PDF labels")
@@ -751,7 +916,11 @@ def main():
                 "- Part Number column\n"
                 "- Description column\n"
                 "- Optional: Max Capacity, Store Location, QTY/VEH columns\n"
-                "- Optional: Bus Model column (7M, 9M, 12M)"
+                "- Optional: Bus Model column (7M, 9M, 12M)\n\n"
+                "**🔧 New Features:**\n"
+                "- Auto-detects all 8 Store Location columns\n"
+                "- QR codes include complete Store Location data\n"
+                "- Enhanced column matching algorithm"
             )
     
     else:
@@ -772,10 +941,11 @@ def main():
         
         with col2:
             st.markdown("""
-            **📱 QR Code Integration**
-            - Automatic QR code generation
-            - Contains all part information
+            **📱 Enhanced QR Code**
+            - Contains ALL Store Location data
+            - Complete part information
             - Easy scanning and tracking
+            - Fixed Store Location detection
             """)
         
         with col3:
@@ -785,12 +955,35 @@ def main():
             - Flexible column mapping
             - Smart quantity parsing
             """)
+        
+        # Technical improvements
+        st.subheader("🔧 Technical Improvements")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("""
+            **🎯 Enhanced Store Location Detection:**
+            - Auto-detects all 8 Store Location columns
+            - Flexible column name matching
+            - Handles various naming conventions
+            - Case-insensitive detection
+            """)
+        
+        with col2:
+            st.markdown("""
+            **📊 Improved QR Code Data:**
+            - Includes complete Store Location: `Mez-C | G+1 | B | HRR | G | R | 0 | 1`
+            - All part information preserved
+            - Properly formatted for scanning
+            - Better data organization
+            """)
     
     # Footer
     st.markdown("---")
     st.markdown(
         "<p style='text-align: center; color: gray; font-size: 14px;'>"
-        "© 2025 Agilomatrix - Mezzanine Label Generator v2.0</p>",
+        "© 2025 Agilomatrix - Mezzanine Label Generator v2.1 - Enhanced Store Location Support</p>",
         unsafe_allow_html=True
     )
 
