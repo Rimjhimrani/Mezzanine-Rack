@@ -1,867 +1,446 @@
 import streamlit as st
 import pandas as pd
 import os
-from reportlab.lib.pagesizes import A4
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Paragraph, PageBreak, Image, KeepTogether
-from reportlab.lib.units import cm, inch
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_LEFT, TA_CENTER
-from reportlab.lib.utils import ImageReader
-from io import BytesIO
-import subprocess
 import sys
 import re
 import tempfile
+import subprocess
+from io import BytesIO
 
-# Define sticker dimensions - Updated for 2 per page
+# --- Library Installation ---
+# Check for required libraries and install them if they are missing.
+def install_package(package):
+    """A helper function to install Python packages."""
+    st.info(f"Installing required library: {package}. Please wait...")
+    try:
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
+        st.success(f"Successfully installed {package}.")
+    except Exception as e:
+        st.error(f"Error installing {package}: {e}")
+        st.stop()
+
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Paragraph, PageBreak, Image, KeepTogether
+    from reportlab.lib.units import cm
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER
+except ImportError:
+    install_package('reportlab')
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Paragraph, PageBreak, Image, KeepTogether
+    from reportlab.lib.units import cm
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER
+
+try:
+    import qrcode
+except ImportError:
+    install_package('qrcode')
+    import qrcode
+
+try:
+    from PIL import Image as PILImage
+except ImportError:
+    install_package('pillow')
+    from PIL import Image as PILImage
+
+
+# --- Global Constants & Styles ---
 STICKER_WIDTH = 18 * cm
 STICKER_HEIGHT = 9 * cm
-STICKER_PAGESIZE = A4
 
-# Define content box dimensions (reduced to fit 2 per page)
-CONTENT_BOX_WIDTH = 18 * cm
-CONTENT_BOX_HEIGHT = 9 * cm
-
-# Check for PIL and install if needed
-try:
-    from PIL import Image as PILImage
-    PIL_AVAILABLE = True
-except ImportError:
-    PIL_AVAILABLE = False
-    st.write("PIL not available. Installing...")
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pillow'])
-    from PIL import Image as PILImage
-    PIL_AVAILABLE = True
-
-# Check for QR code library and install if needed
-try:
-    import qrcode
-    QR_AVAILABLE = True
-except ImportError:
-    QR_AVAILABLE = False
-    st.write("qrcode not available. Installing...")
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'qrcode'])
-    import qrcode
-    QR_AVAILABLE = True
-
-# Define paragraph styles - UPDATED FONT SIZES WITH WORD WRAPPING
+# Define Paragraph Styles for consistent text formatting in the PDF
 bold_style = ParagraphStyle(
-    name='Bold', 
-    fontName='Helvetica-Bold', 
-    fontSize=38, 
-    alignment=TA_CENTER, 
+    name='Bold',
+    fontName='Helvetica-Bold',
+    fontSize=38,
+    alignment=TA_CENTER,
     leading=38,
-    wordWrap='CJK'  # Enable word wrapping
+    wordWrap='CJK'  # Enable word wrapping for long part numbers
+)
+
+qty_style = ParagraphStyle(
+    name='Quantity',
+    fontName='Helvetica',
+    fontSize=22,
+    alignment=TA_CENTER,
+    leading=22
 )
 
 def get_dynamic_desc_style(text):
     """
-    Improved dynamic font sizing with more granular steps.
-    Font size decreases gradually from 30px to 10px based on text length.
-    Box dimensions remain unchanged.
+    Adjusts the font size of the description based on its length to ensure it fits.
     """
     length = len(text)
-    
-    # More granular font size breakpoints for better scaling
-    if length <= 10:
-        font_size = 30
-    elif length <= 15:
-        font_size = 28
-    elif length <= 20:
+    if length <= 20:
         font_size = 26
-    elif length <= 25:
-        font_size = 24
-    elif length <= 35:
+    elif length <= 40:
         font_size = 22
-    elif length <= 45:
-        font_size = 20
-    elif length <= 55:
+    elif length <= 60:
         font_size = 18
-    elif length <= 65:
-        font_size = 16
-    elif length <= 75:
+    elif length <= 80:
         font_size = 14
-    elif length <= 85:
-        font_size = 12
     else:
-        font_size = 10  # Minimum font size
-    
-    # Calculate appropriate leading (line spacing)
-    leading = font_size + 2
-    
+        font_size = 12  # Minimum font size
+
     return ParagraphStyle(
         name='DescriptionDynamic',
         fontName='Helvetica',
         fontSize=font_size,
         alignment=TA_LEFT,
-        leading=leading,
-        wordWrap='CJK',  # Enable word wrapping
-        splitLongWords=1,  # Allow splitting of long words
-        spaceBefore=3,
-        spaceAfter=3,
-        allowWidows=1,    # Allow single lines at end of paragraph
-        allowOrphans=1,   # Allow single lines at start of paragraph
+        leading=font_size + 2, # Dynamic line spacing
+        wordWrap='CJK',
+        splitLongWords=1,
     )
 
-qty_style = ParagraphStyle(
-    name='Quantity', 
-    fontName='Helvetica', 
-    fontSize=22, 
-    alignment=TA_CENTER, 
-    leading=22,
-    wordWrap='CJK'  # Enable word wrapping
-)
+# --- Helper Functions ---
 
 def clean_number_format(value):
     """
-    Clean number formatting to preserve integers and handle decimals properly.
-    Returns string representation maintaining original number format.
+    Cleans numeric values to remove unnecessary decimals (e.g., 5.0 -> "5").
     """
-    if pd.isna(value) or value == '':
+    if pd.isna(value):
         return ''
-    
-    # Handle string values
-    if isinstance(value, str):
-        value = value.strip()
-        if value == '':
-            return ''
-        # Try to convert to number to check if it's numeric
-        try:
-            num_value = float(value)
-            # If it's a whole number, return as integer
-            if num_value.is_integer():
-                return str(int(num_value))
-            else:
-                return str(num_value)
-        except:
-            return value
-    
-    # Handle numeric values
-    if isinstance(value, (int, float)):
-        # If it's a float that represents a whole number
-        if isinstance(value, float) and value.is_integer():
-            return str(int(value))
-        # If it's already an integer
-        elif isinstance(value, int):
-            return str(value)
-        # If it's a decimal
-        else:
-            return str(value)
-    
+    # If the value is a float and is a whole number, convert to an integer string
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
     return str(value)
 
-def find_bus_model_column(df_columns):
-    """Enhanced function to find the bus model column with better detection"""
-    cols = [str(col).upper() for col in df_columns]
-    
-    patterns = [
-        lambda col: col == 'BUS_MODEL',
-        lambda col: col == 'BUSMODEL',
-        lambda col: col == 'BUS MODEL',
-        lambda col: col == 'MODEL',
-        lambda col: col == 'BUS_TYPE',
-        lambda col: col == 'BUSTYPE',
-        lambda col: col == 'BUS TYPE',
-        lambda col: col == 'VEHICLE_TYPE',
-        lambda col: col == 'VEHICLETYPE',
-        lambda col: col == 'VEHICLE TYPE',
-        lambda col: 'BUS' in col and 'MODEL' in col,
-        lambda col: 'BUS' in col and 'TYPE' in col,
-        lambda col: 'VEHICLE' in col and 'MODEL' in col,
-        lambda col: 'VEHICLE' in col and 'TYPE' in col,
-        lambda col: 'MODEL' in col,
-        lambda col: 'BUS' in col,
-        lambda col: 'VEHICLE' in col,
-    ]
-    
-    for pattern in patterns:
-        for i, col in enumerate(cols):
-            if pattern(col):
-                return df_columns[i]
-    
+def find_column(df_columns, keywords, default_index=0):
+    """
+    A flexible function to find a column in the DataFrame that matches a list of keywords.
+    """
+    for col in df_columns:
+        for keyword in keywords:
+            if keyword in str(col).upper():
+                return col
+    # If no match is found, return a default column based on index
+    if len(df_columns) > default_index:
+        return df_columns[default_index]
     return None
 
 def consolidate_duplicate_parts(df, part_no_col, bus_model_col, qty_veh_col):
     """
-    Consolidate duplicate part numbers into single rows with combined model quantities.
-    Returns a modified dataframe with unique part numbers and combined model data.
+    Core logic: Consolidates rows with the same part number into a single entry.
+    It combines the bus model and quantity information for each duplicate.
     """
     if bus_model_col is None or qty_veh_col is None:
+        st.warning("Bus Model or QTY/VEH column not found. Cannot consolidate duplicates.")
         return df
-    
-    # Group by part number
+
+    # Group the DataFrame by the part number column
     grouped = df.groupby(part_no_col)
     consolidated_rows = []
-    
-    for part_no, group in grouped:
+
+    for _, group in grouped:
         if len(group) == 1:
-            # Single occurrence, keep as is
+            # If there's only one entry for this part number, keep it as is
             consolidated_rows.append(group.iloc[0])
         else:
-            # Multiple occurrences, combine them
-            base_row = group.iloc[0].copy()  # Use first row as base
-            
-            # Collect all model-quantity pairs from all rows
+            # If there are duplicates, create a new consolidated row
+            base_row = group.iloc[0].copy()
             combined_model_quantities = {}
-            
+
             for _, row in group.iterrows():
                 model = str(row[bus_model_col]).strip().upper() if pd.notna(row[bus_model_col]) else ""
                 qty = clean_number_format(row[qty_veh_col]) if pd.notna(row[qty_veh_col]) else ""
-                
+
                 if model and qty:
-                    # If same model appears multiple times, sum the quantities
-                    if model in combined_model_quantities:
-                        try:
-                            existing_qty = float(combined_model_quantities[model]) if combined_model_quantities[model] else 0
-                            new_qty = float(qty) if qty else 0
-                            combined_model_quantities[model] = str(int(existing_qty + new_qty))
-                        except ValueError:
-                            # If can't convert to numbers, keep the last value
-                            combined_model_quantities[model] = qty
-                    else:
-                        combined_model_quantities[model] = qty
-            
-            # Create a combined QTY/VEH string with model:qty format
+                    # Store the quantity for each model, overwriting if model repeats
+                    combined_model_quantities[model] = qty
+
+            # Create a combined string like "MODEL1:QTY1 MODEL2:QTY2"
             if combined_model_quantities:
                 combined_qty_str = " ".join([f"{model}:{qty}" for model, qty in combined_model_quantities.items()])
                 base_row[qty_veh_col] = combined_qty_str
-            
+
             consolidated_rows.append(base_row)
-    
-    # Create new dataframe with consolidated rows
-    consolidated_df = pd.DataFrame(consolidated_rows)
-    consolidated_df.reset_index(drop=True, inplace=True)
-    
-    return consolidated_df
 
-def detect_bus_model_and_qty(row, qty_veh_col, bus_model_cols=None, max_models=5):
+    # Return a new DataFrame with the consolidated data
+    return pd.DataFrame(consolidated_rows).reset_index(drop=True)
+
+def detect_bus_models_and_qty(row_data, qty_veh_col):
     """
-    Enhanced function to detect bus models dynamically (min 1, max 5 boxes).
-    Now handles consolidated model:qty format from duplicate part consolidation.
-    Returns dict {model_name: quantity}.
+    Parses the QTY/VEH field to extract model-quantity pairs.
+    Handles both single entries and the consolidated "MODEL:QTY" format.
     """
-    result = {}
+    models = {}
+    qty_veh_value = str(row_data.get(qty_veh_col, ''))
 
-    # Quantity per vehicle (base value)
-    qty_veh = ""
-    if qty_veh_col and qty_veh_col in row and pd.notna(row[qty_veh_col]):
-        qty_veh = clean_number_format(row[qty_veh_col])
-
-    # Enhanced pattern to handle consolidated format like "D6:2 M:1" or "MODEL1:5"
-    if qty_veh:
-        # First try to find explicit "MODEL:QTY" patterns (including spaces)
-        qty_pattern = r'([A-Za-z0-9]+)[:\-\s]*(\d+)'
-        matches = re.findall(qty_pattern, str(qty_veh).upper())
-        if matches:
-            for model, quantity in matches[:max_models]:
-                result[model.strip()] = quantity.strip()
-            return result
-        
-        # If no explicit model:qty pattern found, try single value with model column
-        if bus_model_cols:
-            for col in bus_model_cols[:max_models]:
-                if col in row and pd.notna(row[col]):
-                    model_name = str(row[col]).strip().upper()
-                    if model_name:   # only if not empty
-                        result[model_name] = qty_veh
-                        break
-
-    # If no patterns found but we have bus model columns, use them with qty_veh
-    if not result and bus_model_cols:
-        for col in bus_model_cols[:max_models]:
-            if col in row and pd.notna(row[col]):
-                model_name = str(row[col]).strip().upper()
-                if model_name:   # only if not empty
-                    result[model_name] = qty_veh if qty_veh else ""
-
-    # Fallback: scan whole row for model-like values
-    if not result and qty_veh:
-        for col in row.index:
-            if pd.notna(row[col]) and any(k in str(col).upper() for k in ["MODEL", "BUS", "VEHICLE", "TYPE"]):
-                model_name = str(row[col]).strip().upper()
-                if model_name:
-                    result[model_name] = qty_veh
-                    if len(result) >= max_models:
-                        break
-
-    return result
+    # Regex to find patterns like "M:5", "D6:2", etc.
+    matches = re.findall(r'([A-Z0-9]+):(\d+)', qty_veh_value.upper())
+    if matches:
+        for model, qty in matches:
+            models[model] = qty
+            
+    return models
 
 def generate_qr_code(data_string):
-    """Generate a QR code from the given data string"""
+    """
+    Creates a QR code image from a given text string.
+    """
     try:
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_M,
-            box_size=10,
-            border=4,
-        )
-        
+        qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=4)
         qr.add_data(data_string)
         qr.make(fit=True)
-        
-        qr_img = qr.make_image(fill_color="black", back_color="white")
-        
-        img_buffer = BytesIO()
-        qr_img.save(img_buffer, format='PNG')
-        img_buffer.seek(0)
-        
-        return Image(img_buffer, width=2.2*cm, height=2.2*cm)
-    except Exception as e:
-        st.error(f"Error generating QR code: {e}")
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        # Save image to a memory buffer to be used by ReportLab
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        return Image(buffer, width=2.2*cm, height=2.2*cm)
+    except Exception:
         return None
 
-def extract_store_location_data_from_excel(row_data, max_cells=12):
-    """Extract up to 12 store location values dynamically"""
-    values = []
-    
-    def get_clean_value(possible_names):
-        for name in possible_names:
-            if name in row_data:
-                val = row_data[name]
-                if pd.notna(val) and str(val).strip().lower() not in ['nan', 'none', 'null', '']:
-                    return clean_number_format(val)
-            for col in row_data.index:
-                if isinstance(col, str) and col.upper() == name.upper():
-                    val = row_data[col]
-                    if pd.notna(val) and str(val).strip().lower() not in ['nan', 'none', 'null', '']:
-                        return clean_number_format(val)
-        return None
+# --- Sticker Creation ---
 
-    # Loop through possible Store Loc 1 → Store Loc 12
-    for i in range(1, max_cells + 1):
-        val = get_clean_value([f'Store Loc {i}', f'STORE_LOC_{i}'])
-        if val:
-            values.append(val)
+def create_single_sticker(row, part_no_col, desc_col, max_cap_col, qty_veh_col, all_models):
+    """
+    Constructs the layout and content for one sticker using ReportLab Flowables.
+    """
+    # 1. Extract and clean data from the DataFrame row
+    part_no = clean_number_format(row.get(part_no_col, ''))
+    description = str(row.get(desc_col, ''))
+    max_capacity = clean_number_format(row.get(max_cap_col, ''))
+    
+    # Extract store location columns (up to 12)
+    store_loc_values = [clean_number_format(row.get(f'STORE LOC {i}', '')) for i in range(1, 13)]
+    store_loc_values = [v for v in store_loc_values if v] # Remove empty values
+    full_store_location = " ".join(store_loc_values)
 
-    return values
-
-def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_col, store_loc_col, bus_model_col, all_models):
-    """Create a single sticker layout with border around the entire sticker"""
-    # Extract data with proper number formatting
-    part_no = clean_number_format(row[part_no_col]) if pd.notna(row[part_no_col]) else ""
-    desc = str(row[desc_col]).strip() if pd.notna(row[desc_col]) else ""
-    
-    max_capacity = ""
-    if max_capacity_col and max_capacity_col in row and pd.notna(row[max_capacity_col]):
-        max_capacity = clean_number_format(row[max_capacity_col])
-        
-    qty_veh = ""
-    if qty_veh_col and qty_veh_col in row and pd.notna(row[qty_veh_col]):
-        qty_veh = clean_number_format(row[qty_veh_col])
-    
-    # Get all store location parts for table and QR code
-    store_loc_values = extract_store_location_data_from_excel(row)
-    full_store_location = " ".join([str(v) for v in store_loc_values if v])  # join non-empty values
-    
-    # Use enhanced bus model detection (now handles consolidated model:qty format)
-    mtm_quantities = detect_bus_model_and_qty(row, qty_veh_col, [bus_model_col] if bus_model_col else None)
-
-    # ✅ Generate QR code only once, with full store location
-    qr_data = (
-        f"Part No: {part_no}\n"
-        f"Description: {desc}\n"
-        f"Max Capacity: {max_capacity}\n"
-        f"Store Location: {full_store_location}\n"
-        f"QTY/VEH: {qty_veh}"
-    )
-    
+    # 2. Generate QR Code
+    qr_data = f"Part No: {part_no}\nDesc: {description}\nLocation: {full_store_location}"
     qr_image = generate_qr_code(qr_data)
-    
-    sticker_content = []
-    
-    # Define row heights - ADJUSTED FOR BETTER FIT
-    header_row_height = 2.0*cm  # Increased for better spacing
-    desc_row_height = 1.8*cm    # Increased for better text wrapping
-    max_capacity_row_height = 1.32*cm
-    store_loc_row_height = 1.3*cm
 
-    # Main table data with improved Part No styling and proper wrapping
+    # 3. Build the sticker layout using tables
+    
+    # Main info table (Part No, Description, Max Capacity)
     main_table_data = [
-        ["Part No", Paragraph(f"{part_no}", bold_style)],
-        ["Description", Paragraph(desc, get_dynamic_desc_style(desc))],
-        ["Max capacity", Paragraph(str(max_capacity), qty_style)]
+        ["Part No", Paragraph(part_no, bold_style)],
+        ["Description", Paragraph(description, get_dynamic_desc_style(description))],
+        ["Max capacity", Paragraph(max_capacity, qty_style)]
     ]
-
-    # Create main table with IMPROVED PADDING and wrapping
-    main_table = Table(main_table_data,
-                     colWidths=[CONTENT_BOX_WIDTH/3, CONTENT_BOX_WIDTH*2/3],
-                     rowHeights=[header_row_height, desc_row_height, max_capacity_row_height])
-
-    # UPDATED TABLE STYLE WITH PROPER PADDING AND WRAPPING SUPPORT
+    main_table = Table(main_table_data, colWidths=[STICKER_WIDTH/3, STICKER_WIDTH*2/3], rowHeights=[2.0*cm, 2.5*cm, 1.3*cm])
     main_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (0, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (0, -1), 20),
-        # ADDED PROPER PADDING FOR ALL CELLS
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        # Enable text wrapping in cells
-        ('WORDWRAP', (0, 0), (-1, -1), True),
+        ('LEFTPADDING', (1, 1), (1, 1), 8) # Padding for description
     ]))
 
-    sticker_content.append(main_table)
-
-    store_loc_label = Paragraph("Store Location", ParagraphStyle(
-        name='StoreLoc', fontName='Helvetica-Bold', fontSize=20, alignment=TA_CENTER
-    ))
-    store_loc_values = [v for v in extract_store_location_data_from_excel(row) if v]  # keep only non-empty
-    if not store_loc_values:
-        store_loc_values = [""]
-
-    inner_table_width = CONTENT_BOX_WIDTH * 2 / 3
-    num_cols = len(store_loc_values)
-    inner_col_widths = [inner_table_width / num_cols] * num_cols
-
-    store_loc_inner_table = Table(
-        [store_loc_values],
-        colWidths=inner_col_widths,
-        rowHeights=[store_loc_row_height]
-    )
-
-    store_loc_inner_table.setStyle(TableStyle([
+    # Store Location Table (with a nested table for the values)
+    if not store_loc_values: store_loc_values = [""] # Ensure table has at least one cell
+    loc_cols = len(store_loc_values)
+    loc_inner_table = Table([store_loc_values], colWidths=[(STICKER_WIDTH*2/3)/loc_cols]*loc_cols, rowHeights=[1.3*cm])
+    loc_inner_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 16),
-        ('LEFTPADDING', (0, 0), (-1, -1), 1),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 1),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('WORDWRAP', (0, 0), (-1, -1), True),
-    ]))
-
-    store_loc_table = Table(
-        [[store_loc_label, store_loc_inner_table]],
-        colWidths=[CONTENT_BOX_WIDTH/3, inner_table_width],
-        rowHeights=[store_loc_row_height]
-    )
-
-    store_loc_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('FONTSIZE', (0, 0), (-1, -1), 16)
     ]))
     
-    sticker_content.append(store_loc_table)
-
-    # Add small spacer
-    sticker_content.append(Spacer(1, 0.1*cm))
-
-    # Bottom section - MTM boxes and QR code (ENHANCED FOR CONSOLIDATED QUANTITIES)
-    max_models = 5
-    mtm_box_width = 1.6 * cm
-    mtm_row_height = 1.8 * cm
-
-    headers = []
-    values = []
-
-    # Use all_models for headers, but show quantities from mtm_quantities
-    for i in range(max_models):
-        if i < len(all_models):
-            model_name = all_models[i]
-            # Get quantity from detected model quantities (handles consolidated format)
-            qty_val = mtm_quantities.get(model_name, "")
-            headers.append(model_name)
-            values.append(Paragraph(
-                f"<b>{qty_val}</b>" if qty_val else "",
-                ParagraphStyle(name=f"Qty_{model_name}", fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER)
-            ))
-        else:
-            headers.append("")
-            values.append("")
-            
-    position_matrix_data = [headers, values]
-
-    mtm_table = Table(
-        position_matrix_data,
-        colWidths=[mtm_box_width] * max_models,
-        rowHeights=[mtm_row_height/2, mtm_row_height/2]
-    )
-    mtm_table.setStyle(TableStyle([
+    store_loc_table = Table([
+        [Paragraph("Store Location", ParagraphStyle(name='SL', fontName='Helvetica-Bold', fontSize=20, alignment=TA_CENTER)), loc_inner_table]
+    ], colWidths=[STICKER_WIDTH/3, STICKER_WIDTH*2/3], rowHeights=[1.3*cm])
+    store_loc_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    ]))
+
+    # Bottom Section (Bus Model Quantities and QR Code)
+    model_quantities = detect_bus_models_and_qty(row, qty_veh_col)
+    
+    # Create headers and values for the model table
+    model_headers = all_models
+    model_values = [model_quantities.get(model, "") for model in all_models]
+
+    model_table = Table([model_headers, model_values], colWidths=[1.6*cm]*len(all_models), rowHeights=[0.9*cm, 0.9*cm])
+    model_table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'), # Bold headers
+        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'), # Bold values
         ('FONTSIZE', (0, 0), (-1, -1), 18),
     ]))
 
-    # QR code table (IMPROVED CENTERING)
-    qr_width = 2.5*cm
-    qr_height = 2.5*cm
-
-    if qr_image:
-        qr_image.drawWidth = qr_width
-        qr_image.drawHeight = qr_height
-        qr_table = Table(
-            [[qr_image]],
-            colWidths=[qr_width],
-            rowHeights=[qr_height]
-        )
-    else:
-        qr_table = Table(
-            [[Paragraph("QR", ParagraphStyle(
-                name='QRPlaceholder', fontName='Helvetica-Bold', fontSize=14, alignment=TA_CENTER
-            ))]],
-            colWidths=[qr_width],
-            rowHeights=[qr_height]
-        )
-
-    qr_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
-
-    # Calculate spacing for better QR code centering (UPDATED FOR 5 BOXES)
-    total_mtm_width = max_models * mtm_box_width
-    remaining_width = CONTENT_BOX_WIDTH - total_mtm_width - qr_width
+    # Combine models and QR code in a final table for alignment
+    bottom_table_width = len(all_models) * 1.6*cm + 3.5*cm # Width of model boxes + spacer + QR
+    spacer_width = STICKER_WIDTH - bottom_table_width
     
-    # Split the remaining space more evenly for better centering
-    left_spacer_width = remaining_width * 0.3   # 30% on left
-    right_spacer_width = remaining_width * 0.7  # 70% on right
+    bottom_table = Table([[model_table, Spacer(spacer_width, 1), qr_image if qr_image else ""]], 
+                         colWidths=[len(all_models) * 1.6*cm, spacer_width, 3.5*cm])
+    bottom_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
 
-    # Combine MTM boxes and QR code in one row with better spacing
-    bottom_row = Table(
-        [[mtm_table, "", qr_table, ""]],
-        colWidths=[total_mtm_width, left_spacer_width, qr_width, right_spacer_width],
-        rowHeights=[max(mtm_row_height, qr_height)]
-    )
-
-    bottom_row.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (0, 0), 'LEFT'),     # MTM boxes aligned left
-        ('ALIGN', (2, 0), (2, 0), 'CENTER'),   # QR code centered
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
-
-    sticker_content.append(bottom_row)
+    # 4. Assemble the sticker content and wrap it
+    sticker_content = [main_table, store_loc_table, Spacer(1, 0.2*cm), bottom_table]
     
-    # Create outer table that wraps all sticker content with border
-    sticker_table = Table(
-        [[sticker_content]],
-        colWidths=[CONTENT_BOX_WIDTH],
-        rowHeights=[CONTENT_BOX_HEIGHT]
-    )
-    
-    # Add border around the entire sticker with NO PADDING (to prevent content touching border)
-    sticker_table.setStyle(TableStyle([
-        ('BOX', (0, 0), (-1, -1), 2, colors.black),  # Outer border for entire sticker
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 4),   # Reduced padding
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4),  # Reduced padding
-        ('TOPPADDING', (0, 0), (-1, -1), 0),    # Reduced padding
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4), # Reduced padding
+    # Use a final wrapper table to add the outer border
+    sticker_wrapper = Table([[sticker_content]], colWidths=[STICKER_WIDTH], rowHeights=[STICKER_HEIGHT])
+    sticker_wrapper.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 2, colors.black), # Thick outer border
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4)
     ]))
     
-    # Wrap in KeepTogether to prevent page breaks within a sticker
-    return KeepTogether([sticker_table])
+    return KeepTogether([sticker_wrapper]) # Keep sticker from breaking across pages
 
-def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=None):
-    """Generate sticker labels with QR code from Excel data - 2 per page, handling duplicate parts"""
-    if status_callback:
-        status_callback(f"Processing file: {excel_file_path}")
+# --- Main PDF Generation Function ---
 
-    # Load the Excel data
+def generate_pdf(input_path, output_path, status_callback):
+    """
+    Main orchestrator function that reads data, processes it, and builds the PDF.
+    """
     try:
-        if excel_file_path.lower().endswith('.csv'):
-            df = pd.read_csv(excel_file_path)
-        else:
-            try:
-                df = pd.read_excel(excel_file_path)
-            except Exception as e:
-                try:
-                    df = pd.read_excel(excel_file_path, engine='openpyxl')
-                except Exception as e2:
-                    df = pd.read_csv(excel_file_path, encoding='latin1')
+        status_callback("Reading data file...")
+        df = pd.read_excel(input_path) if input_path.endswith(('.xlsx', '.xls')) else pd.read_csv(input_path)
+        
+        # Keep original column names for data access, but use uppercase for matching
+        original_cols = df.columns.tolist()
+        upper_cols = [str(col).upper() for col in original_cols]
+        df.columns = upper_cols
 
-        if status_callback:
-            status_callback(f"Successfully read file with {len(df)} rows")
     except Exception as e:
-        error_msg = f"Error reading file: {e}"
-        if status_callback:
-            status_callback(error_msg)
+        st.error(f"Error reading the file: {e}")
         return None
 
-    # Identify columns
-    original_columns = df.columns.tolist()
-    df.columns = [col.upper() if isinstance(col, str) else col for col in df.columns]
-    cols = df.columns.tolist()
+    # Identify essential columns
+    part_no_col = find_column(upper_cols, ['PART NO', 'PARTNO', 'PART_NO'], 0)
+    desc_col = find_column(upper_cols, ['DESC'], 1)
+    max_cap_col = find_column(upper_cols, ['MAX CAP', 'MAX_CAP', 'MAXIMUM'], 2)
+    qty_veh_col = find_column(upper_cols, ['QTY/VEH', 'QTY_VEH'], 3)
+    bus_model_col = find_column(upper_cols, ['BUS MODEL', 'BUS_MODEL', 'MODEL'], 4)
 
-    # Find relevant columns
-    part_no_col = next((col for col in cols if 'PART' in col and ('NO' in col or 'NUM' in col or '#' in col)),
-                   next((col for col in cols if col in ['PARTNO', 'PART']), cols[0]))
-
-    desc_col = next((col for col in cols if 'DESC' in col),
-                   next((col for col in cols if 'NAME' in col), cols[1] if len(cols) > 1 else part_no_col))
-
-    max_capacity_col = next((col for col in cols if 'MAX' in col and 'CAPACITY' in col), 
-                           next((col for col in cols if 'CAPACITY' in col),
-                           next((col for col in cols if 'QTY' in col), None)))
-    
-    store_loc_col = next((col for col in cols if 'STORE' in col and 'LOC' in col),
-                      next((col for col in cols if 'STORELOCATION' in col), None))
-
-    qty_veh_col = next((col for col in cols if any(term in col for term in ['QTY/VEH', 'QTY_VEH', 'QTY PER VEH', 'QTYVEH', 'QTYPERCAR', 'QTYCAR', 'QTY/CAR'])), None)
-
-    bus_model_col = find_bus_model_column(original_columns)
-
-    if bus_model_col:
-        bus_model_col = bus_model_col.upper()
-
-    # ✅ NEW: Consolidate duplicate parts BEFORE processing
-    if status_callback:
-        status_callback(f"Consolidating duplicate parts...")
-    
+    # Consolidate duplicate parts
+    status_callback("Consolidating duplicate part numbers...")
     df = consolidate_duplicate_parts(df, part_no_col, bus_model_col, qty_veh_col)
+    status_callback(f"Found {len(df)} unique parts to generate labels for.")
+
+    # Determine the unique set of bus models for the sticker headers
+    all_models = set()
+    for _, row in df.iterrows():
+        models_found = detect_bus_models_and_qty(row, qty_veh_col)
+        all_models.update(models_found.keys())
+    # Limit to max 5 models and sort for consistency
+    sorted_models = sorted(list(all_models))[:5]
+
+    # Set up the PDF document
+    doc = SimpleDocTemplate(output_path, pagesize=A4, topMargin=1*cm, bottomMargin=1*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
+    elements = []
     
-    if status_callback:
-        status_callback(f"After consolidation: {len(df)} unique parts")
-
-    # Get all unique models for the column headers
-    if bus_model_col and bus_model_col in df.columns:
-        all_models = set()
-        for _, row in df.iterrows():
-            # Extract models from consolidated QTY/VEH format
-            qty_veh = str(row[qty_veh_col]) if qty_veh_col and pd.notna(row[qty_veh_col]) else ""
-            if qty_veh:
-                # Look for model:qty patterns
-                model_pattern = r'([A-Za-z0-9]+):\d+'
-                found_models = re.findall(model_pattern, qty_veh.upper())
-                all_models.update(found_models)
-            
-            # Also check the bus_model_col directly
-            if pd.notna(row[bus_model_col]):
-                model_name = str(row[bus_model_col]).strip().upper()
-                if model_name:
-                    all_models.add(model_name)
+    # Process rows and create stickers (2 per page)
+    for i in range(0, len(df), 2):
+        status_callback(f"Processing stickers {i+1}-{min(i+2, len(df))} of {len(df)}...")
         
-        all_models = sorted(list(all_models))[:5]  # Limit to 5 models
-    else:
-        all_models = []
-
-    # Create document with custom margins for 2 stickers per page
-    doc = SimpleDocTemplate(output_pdf_path, pagesize=A4,
-                          topMargin=1*cm, bottomMargin=1*cm,
-                          leftMargin=1.5*cm, rightMargin=1.5*cm)
-
-    all_elements = []
-    total_rows = len(df)
-
-    # Process rows in pairs for 2 per page
-    for i in range(0, total_rows, 2):
-        if status_callback:
-            status_callback(f"Creating stickers {i+1}-{min(i+2, total_rows)} of {total_rows}")
+        # Create the first sticker
+        sticker1 = create_single_sticker(df.iloc[i], part_no_col, desc_col, max_cap_col, qty_veh_col, sorted_models)
+        elements.append(sticker1)
         
-        # First sticker
-        sticker1 = create_single_sticker(
-            df.iloc[i], part_no_col, desc_col, max_capacity_col, 
-            qty_veh_col, store_loc_col, bus_model_col, all_models
-        )
+        # Add a vertical spacer between the two stickers on a page
+        elements.append(Spacer(1, 1.5*cm))
         
-        all_elements.append(sticker1)
+        # Create the second sticker if it exists in the pair
+        if i + 1 < len(df):
+            sticker2 = create_single_sticker(df.iloc[i+1], part_no_col, desc_col, max_cap_col, qty_veh_col, sorted_models)
+            elements.append(sticker2)
         
-        # Add spacer between stickers
-        all_elements.append(Spacer(1, 1.5*cm))
-        
-        # Second sticker (if exists)
-        if i + 1 < total_rows:
-            sticker2 = create_single_sticker(
-                df.iloc[i+1], part_no_col, desc_col, max_capacity_col,
-                qty_veh_col, store_loc_col, bus_model_col, all_models
-            )
-            all_elements.append(sticker2)
-        
-        # Add page break after every pair (except the last pair)
-        if i + 2 < total_rows:
-            all_elements.append(PageBreak())
-
-    # Build the document
+        # Add a page break after every pair of stickers
+        if i + 2 < len(df):
+            elements.append(PageBreak())
+    
     try:
-        doc.build(all_elements)
-        if status_callback:
-            status_callback(f"PDF generated successfully: {output_pdf_path}")
-        return output_pdf_path
+        status_callback("Building the final PDF document...")
+        doc.build(elements)
+        status_callback("PDF generated successfully!")
+        return output_path
     except Exception as e:
-        error_msg = f"Error building PDF: {e}"
-        if status_callback:
-            status_callback(error_msg)
+        st.error(f"Failed to build PDF: {e}")
         return None
-        
+
+# --- Streamlit User Interface ---
+
 def main():
-    """Main Streamlit application"""
+    """Defines the Streamlit application layout and logic."""
     st.set_page_config(page_title="Mezzanine Label Generator", page_icon="🏷️", layout="wide")
     
     st.title("🏷️ Mezzanine Label Generator")
-    st.markdown(
-        "<p style='font-size:18px; font-style:italic; margin-top:-10px; text-align:left;'>"
-        "Designed and Developed by Agilomatrix</p>",
-        unsafe_allow_html=True
+    st.markdown("An intelligent tool to create professional, QR-coded labels with automatic duplicate part consolidation.")
+    st.markdown("---")
+
+    uploaded_file = st.file_uploader(
+        "**Step 1: Upload your Parts File**",
+        type=['xlsx', 'xls', 'csv'],
+        help="Upload an Excel or CSV file with your parts data."
     )
 
-    st.markdown("---")
-    
-    # File upload
-    st.header("📁 File Upload")
-    uploaded_file = st.file_uploader(
-        "Choose an Excel or CSV file",
-        type=['xlsx', 'xls', 'csv'],
-        help="Upload your Excel or CSV file containing part information"
-    )
-    
-    if uploaded_file is not None:
-        # Create temporary file
+    if uploaded_file:
+        st.success(f"File '{uploaded_file.name}' uploaded successfully.")
+        
+        # Use a temporary file to store the upload
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_file.name)[1]) as tmp_file:
-            tmp_file.write(uploaded_file.getvalue())
-            temp_input_path = tmp_file.name
-        
-        # Display file info
-        st.success(f"✅ File uploaded: {uploaded_file.name}")
-        
-        # Preview data
+            tmp_file.write(uploaded_file.getbuffer())
+            input_file_path = tmp_file.name
+
+        # Show a preview of the data
         try:
-            if uploaded_file.name.lower().endswith('.csv'):
-                preview_df = pd.read_csv(temp_input_path).head(5)
-            else:
-                preview_df = pd.read_excel(temp_input_path).head(5)
-            
-            st.subheader("📊 Data Preview (First 5 rows)")
-            st.dataframe(preview_df, use_container_width=True)
-            
-            # Show duplicate part info if any
-            part_col_candidates = [col for col in preview_df.columns if 'part' in col.lower() and ('no' in col.lower() or 'num' in col.lower())]
-            if part_col_candidates:
-                part_col = part_col_candidates[0]
-                duplicates = preview_df[part_col].duplicated().sum()
-                if duplicates > 0:
-                    st.info(f"ℹ️ Found {duplicates} duplicate part numbers in preview. These will be consolidated into single stickers with combined model quantities.")
-            
+            preview_df = pd.read_excel(input_file_path).head() if input_file_path.endswith(('.xlsx', '.xls')) else pd.read_csv(input_file_path).head()
+            st.subheader("Data Preview (First 5 Rows)")
+            st.dataframe(preview_df)
         except Exception as e:
-            st.error(f"Error previewing file: {e}")
-            return
+            st.error(f"Could not preview the file. Error: {e}")
+
+        st.markdown("---")
+        st.subheader("**Step 2: Generate Your Labels**")
         
-        # Generate labels section
-        st.subheader("🚀 Generate Labels")
-        
-        col1, col2 = st.columns([1, 1])
-        
-        with col1:
-            if st.button("🏷️ Generate PDF Labels", type="primary", use_container_width=True):
-                # Create progress container
+        if st.button("🚀 Generate PDF Labels", type="primary"):
+            with st.spinner("Generating labels... This may take a moment."):
                 status_container = st.empty()
-                
-                # Create temporary output file
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_output:
-                    temp_output_path = tmp_output.name
-                
-                # Progress tracking
                 def update_status(message):
-                    status_container.info(f"📊 {message}")
+                    status_container.info(message)
                 
-                try:
-                    # Generate the PDF
-                    update_status("Starting optimized label generation...")
+                # Create a temporary path for the output PDF
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_output:
+                    output_file_path = tmp_output.name
+
+                result_path = generate_pdf(input_file_path, output_file_path, update_status)
+                
+                # Clean up the temporary input file
+                os.unlink(input_file_path)
+
+                if result_path:
+                    with open(result_path, "rb") as pdf_file:
+                        pdf_bytes = pdf_file.read()
+
+                    st.success("✅ PDF generation complete!")
                     
-                    result_path = generate_sticker_labels(
-                        temp_input_path, 
-                        temp_output_path,
-                        status_callback=update_status
+                    # Provide the download button
+                    st.download_button(
+                        label="📥 Download PDF Labels",
+                        data=pdf_bytes,
+                        file_name=f"Mezzanine_Labels_{os.path.splitext(uploaded_file.name)[0]}.pdf",
+                        mime="application/pdf"
                     )
-                    
-                    if result_path:
-                        # Success - provide download
-                        with open(result_path, 'rb') as pdf_file:
-                            pdf_data = pdf_file.read()
-                        
-                        status_container.success("✅ Labels generated successfully! Duplicate parts have been consolidated.")
-                        
-                        # Download button
-                        st.download_button(
-                            label="📥 Download PDF Labels",
-                            data=pdf_data,
-                            file_name=f"mezzanine_labels_{uploaded_file.name.split('.')[0]}.pdf",
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
-                        
-                    else:
-                        status_container.error("❌ Failed to generate PDF labels")
-                        
-                except Exception as e:
-                    status_container.error(f"❌ Error generating labels: {str(e)}")
-                    st.error("Please check your file format and try again.")
-                
-                finally:
-                    # Clean up temporary files
-                    try:
-                        os.unlink(temp_input_path)
-                        if 'temp_output_path' in locals():
-                            os.unlink(temp_output_path)
-                    except:
-                        pass
-        
-        with col2:
-            st.info(
-                "**📋 Requirements:**\n"
-                "- Excel (.xlsx, .xls) or CSV file\n"
-                "- Part Number column\n"
-                "- Description column\n"
-                "- Optional: Max Capacity, Store Location columns (1-11)\n"
-                "- Optional: QTY/VEH column\n"
-                "- Optional: Bus Model column (D6, M, P, 55T)\n\n"
-                "**🔄 Duplicate Handling:**\n"
-                "- Duplicate part numbers are automatically consolidated\n"
-                "- Model quantities are combined in single stickers\n"
-                "- Format: MODEL1:QTY1 MODEL2:QTY2"
-            )
-    
+                    # Clean up the temporary output file
+                    os.unlink(result_path)
+                else:
+                    st.error("❌ Failed to generate the PDF. Please check the file and try again.")
     else:
-        # Instructions when no file is uploaded
-        st.info("👆 Please upload an Excel or CSV file to get started")
-        
-        # Feature highlights
-        st.subheader("✨ Features")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("""
-            **🏷️ Professional Labels**
-            - Clean, readable design
-            - Optimized for printing
-            - 2 labels per page
-            """)
-        
-        with col2:
-            st.markdown("""
-            **📱 QR Code Integration**
-            - Automatic QR code generation
-            - Contains all part information
-            - Easy scanning and tracking
-            """)
-        
-        with col3:
-            st.markdown("""
-            **🔄 Smart Duplicate Handling**
-            - Automatically consolidates duplicate parts
-            - Combines model quantities
-            - Reduces label count efficiently
-            """)
-    
-    # Footer
-    st.markdown("---")
-    st.markdown(
-        "<p style='text-align: center; color: gray; font-size: 14px;'>"
-        "© 2025 Agilomatrix - Mezzanine Label Generator v2.2 (Enhanced Duplicate Handling)</p>",
-        unsafe_allow_html=True
-    )
+        st.info("Please upload an Excel or CSV file to begin.")
+        st.markdown("""
+            ### Key Features:
+            - **Automatic Duplicate Consolidation:** If the same part number appears multiple times (e.g., for different bus models), it will be combined into a *single sticker*.
+            - **QR Code Integration:** Each label includes a QR code for easy scanning and inventory management.
+            - **Dynamic Layout:** The design adjusts to fit your data, including variable text length.
+            - **Professional Output:** Creates a clean, print-ready PDF with two stickers per page.
+        """)
 
 if __name__ == "__main__":
     main()
