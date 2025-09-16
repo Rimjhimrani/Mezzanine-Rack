@@ -214,6 +214,41 @@ def group_by_part_number(df, part_no_col, bus_model_col, qty_veh_col, all_models
                             model_qty_map[model] = qty
                     else:
                         model_qty_map[model] = qty
+            else:
+                # If no bus model column, try to extract from qty/veh column
+                if qty_veh_col and pd.notna(row[qty_veh_col]):
+                    qty_val = str(row[qty_veh_col]).strip()
+                    # Look for patterns like "P=1", "S=1", "P:1", etc.
+                    model_qty_pattern = r'([A-Za-z0-9]+)[=:]\s*(\d+)'
+                    matches = re.findall(model_qty_pattern, qty_val)
+                    
+                    if matches:
+                        for model, qty in matches:
+                            model = model.upper()
+                            if model in model_qty_map:
+                                existing_qty = model_qty_map[model]
+                                try:
+                                    combined_qty = int(existing_qty) + int(qty)
+                                    model_qty_map[model] = str(combined_qty)
+                                except:
+                                    model_qty_map[model] = f"{existing_qty},{qty}"
+                            else:
+                                model_qty_map[model] = qty
+                    else:
+                        # If no pattern found, treat entire qty as default quantity
+                        qty = clean_number_format(row[qty_veh_col])
+                        if qty:
+                            # Use first available model from all_models or create a default
+                            default_model = all_models[0] if all_models else "DEFAULT"
+                            if default_model in model_qty_map:
+                                existing_qty = model_qty_map[default_model]
+                                try:
+                                    combined_qty = int(existing_qty) + int(qty)
+                                    model_qty_map[default_model] = str(combined_qty)
+                                except:
+                                    model_qty_map[default_model] = f"{existing_qty},{qty}"
+                            else:
+                                model_qty_map[default_model] = qty
         
         # Store the combined model-quantity information in the base row
         base_row['_combined_models'] = model_qty_map
@@ -571,16 +606,44 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         all_models = [str(m).strip().upper() for m in all_models if str(m).strip() != ""]
         all_models = all_models[:5]  # only first 5 if more
     else:
+        # If no bus model column found, try to extract models from qty/veh column
         all_models = []
+        if qty_veh_col and qty_veh_col in df.columns:
+            for _, row in df.iterrows():
+                if pd.notna(row[qty_veh_col]):
+                    qty_val = str(row[qty_veh_col]).strip()
+                    # Look for patterns like "P=1", "S=1", "P:1", etc.
+                    model_qty_pattern = r'([A-Za-z0-9]+)[=:]\s*(\d+)'
+                    matches = re.findall(model_qty_pattern, qty_val)
+                    
+                    for model, qty in matches:
+                        model = model.upper()
+                        if model not in all_models:
+                            all_models.append(model)
+        
+        # If still no models found, use default models
+        if not all_models:
+            all_models = ['D6', 'M', 'P', 'S', '55T']
+        
+        # Limit to 5 models
+        all_models = all_models[:5]
 
     if status_callback:
         status_callback(f"Grouping data by part number...")
+        status_callback(f"Found models: {all_models}")
+        status_callback(f"Bus model column: {bus_model_col}")
+        status_callback(f"QTY/VEH column: {qty_veh_col}")
 
     # Group data by part number
     grouped_rows = group_by_part_number(df, part_no_col, bus_model_col, qty_veh_col, all_models)
     
     if status_callback:
         status_callback(f"Created {len(grouped_rows)} unique part number groups from {len(df)} original rows")
+        # Debug: Show first few grouped results
+        for i, row in enumerate(grouped_rows[:3]):  # Show first 3 grouped rows
+            part_no = clean_number_format(row[part_no_col]) if pd.notna(row[part_no_col]) else ""
+            models = row.get('_combined_models', {})
+            status_callback(f"Group {i+1} - Part: {part_no}, Models: {models}")
 
     # Create document with custom margins for 2 stickers per page
     doc = SimpleDocTemplate(output_pdf_path, pagesize=A4,
