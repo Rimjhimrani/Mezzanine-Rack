@@ -103,6 +103,7 @@ def get_dynamic_desc_style(text):
         allowWidows=1,    # Allow single lines at end of paragraph
         allowOrphans=1,   # Allow single lines at start of paragraph
     )
+
 qty_style = ParagraphStyle(
     name='Quantity', 
     fontName='Helvetica', 
@@ -181,92 +182,109 @@ def find_bus_model_column(df_columns):
     
     return None
 
-def detect_bus_model_and_qty(row, qty_veh_col, bus_model_col=None):
-    """Improved bus model detection that properly matches bus model to MTM box"""
-    result = {'7M': '', '9M': '', '12M': ''}
+def consolidate_duplicate_parts(df, part_no_col, bus_model_col, qty_veh_col):
+    """
+    Consolidate duplicate part numbers into single rows with combined model quantities.
+    Returns a modified dataframe with unique part numbers and combined model data.
+    """
+    if bus_model_col is None or qty_veh_col is None:
+        return df
     
+    # Group by part number
+    grouped = df.groupby(part_no_col)
+    consolidated_rows = []
+    
+    for part_no, group in grouped:
+        if len(group) == 1:
+            # Single occurrence, keep as is
+            consolidated_rows.append(group.iloc[0])
+        else:
+            # Multiple occurrences, combine them
+            base_row = group.iloc[0].copy()  # Use first row as base
+            
+            # Collect all model-quantity pairs from all rows
+            combined_model_quantities = {}
+            
+            for _, row in group.iterrows():
+                model = str(row[bus_model_col]).strip().upper() if pd.notna(row[bus_model_col]) else ""
+                qty = clean_number_format(row[qty_veh_col]) if pd.notna(row[qty_veh_col]) else ""
+                
+                if model and qty:
+                    # If same model appears multiple times, sum the quantities
+                    if model in combined_model_quantities:
+                        try:
+                            existing_qty = float(combined_model_quantities[model]) if combined_model_quantities[model] else 0
+                            new_qty = float(qty) if qty else 0
+                            combined_model_quantities[model] = str(int(existing_qty + new_qty))
+                        except ValueError:
+                            # If can't convert to numbers, keep the last value
+                            combined_model_quantities[model] = qty
+                    else:
+                        combined_model_quantities[model] = qty
+            
+            # Create a combined QTY/VEH string with model:qty format
+            if combined_model_quantities:
+                combined_qty_str = " ".join([f"{model}:{qty}" for model, qty in combined_model_quantities.items()])
+                base_row[qty_veh_col] = combined_qty_str
+            
+            consolidated_rows.append(base_row)
+    
+    # Create new dataframe with consolidated rows
+    consolidated_df = pd.DataFrame(consolidated_rows)
+    consolidated_df.reset_index(drop=True, inplace=True)
+    
+    return consolidated_df
+
+def detect_bus_model_and_qty(row, qty_veh_col, bus_model_cols=None, max_models=5):
+    """
+    Enhanced function to detect bus models dynamically (min 1, max 5 boxes).
+    Now handles consolidated model:qty format from duplicate part consolidation.
+    Returns dict {model_name: quantity}.
+    """
+    result = {}
+
+    # Quantity per vehicle (base value)
     qty_veh = ""
     if qty_veh_col and qty_veh_col in row and pd.notna(row[qty_veh_col]):
-        qty_veh_raw = row[qty_veh_col]
-        if pd.notna(qty_veh_raw):
-            qty_veh = clean_number_format(qty_veh_raw)
+        qty_veh = clean_number_format(row[qty_veh_col])
 
-    if not qty_veh:
-        return result
-    
-    # Check if quantity already contains model info
-    qty_pattern = r'(\d+M)[:\-\s]*(\d+)'
-    matches = re.findall(qty_pattern, qty_veh.upper())
-    
-    if matches:
-        for model, quantity in matches:
-            if model in result:
-                result[model] = quantity
-        return result
-    
-    # Look for bus model in dedicated bus model column
-    detected_model = None
-    if bus_model_col and bus_model_col in row and pd.notna(row[bus_model_col]):
-        bus_model_value = str(row[bus_model_col]).strip().upper()
+    # Enhanced pattern to handle consolidated format like "D6:2 M:1" or "MODEL1:5"
+    if qty_veh:
+        # First try to find explicit "MODEL:QTY" patterns (including spaces)
+        qty_pattern = r'([A-Za-z0-9]+)[:\-\s]*(\d+)'
+        matches = re.findall(qty_pattern, str(qty_veh).upper())
+        if matches:
+            for model, quantity in matches[:max_models]:
+                result[model.strip()] = quantity.strip()
+            return result
         
-        if bus_model_value in ['7M', '7']:
-            detected_model = '7M'
-        elif bus_model_value in ['9M', '9']:
-            detected_model = '9M'
-        elif bus_model_value in ['12M', '12']:
-            detected_model = '12M'
-        elif re.search(r'\b7M\b', bus_model_value):
-            detected_model = '7M'
-        elif re.search(r'\b9M\b', bus_model_value):
-            detected_model = '9M'
-        elif re.search(r'\b12M\b', bus_model_value):
-            detected_model = '12M'
-        elif re.search(r'\b7\b', bus_model_value):
-            detected_model = '7M'
-        elif re.search(r'\b9\b', bus_model_value):
-            detected_model = '9M'
-        elif re.search(r'\b12\b', bus_model_value):
-            detected_model = '12M'
-    
-    if detected_model:
-        result[detected_model] = qty_veh
-        return result
-    
-    # Search through other columns
-    priority_columns = []
-    other_columns = []
-    
-    for col in row.index:
-        if pd.notna(row[col]):
-            col_upper = str(col).upper()
-            if any(keyword in col_upper for keyword in ['MODEL', 'BUS', 'VEHICLE', 'TYPE']):
-                priority_columns.append(col)
-            else:
-                other_columns.append(col)
-    
-    for col in priority_columns:
-        if pd.notna(row[col]):
-            value_str = str(row[col]).upper()
-            
-            if re.search(r'\b7M\b', value_str):
-                result['7M'] = qty_veh
-                return result
-            elif re.search(r'\b9M\b', value_str):
-                result['9M'] = qty_veh
-                return result
-            elif re.search(r'\b12M\b', value_str):
-                result['12M'] = qty_veh
-                return result
-            elif re.search(r'\b7\b', value_str) and any(keyword in value_str for keyword in ['BUS', 'METER', 'M']):
-                result['7M'] = qty_veh
-                return result
-            elif re.search(r'\b9\b', value_str) and any(keyword in value_str for keyword in ['BUS', 'METER', 'M']):
-                result['9M'] = qty_veh
-                return result
-            elif re.search(r'\b12\b', value_str) and any(keyword in value_str for keyword in ['BUS', 'METER', 'M']):
-                result['12M'] = qty_veh
-                return result
-    
+        # If no explicit model:qty pattern found, try single value with model column
+        if bus_model_cols:
+            for col in bus_model_cols[:max_models]:
+                if col in row and pd.notna(row[col]):
+                    model_name = str(row[col]).strip().upper()
+                    if model_name:   # only if not empty
+                        result[model_name] = qty_veh
+                        break
+
+    # If no patterns found but we have bus model columns, use them with qty_veh
+    if not result and bus_model_cols:
+        for col in bus_model_cols[:max_models]:
+            if col in row and pd.notna(row[col]):
+                model_name = str(row[col]).strip().upper()
+                if model_name:   # only if not empty
+                    result[model_name] = qty_veh if qty_veh else ""
+
+    # Fallback: scan whole row for model-like values
+    if not result and qty_veh:
+        for col in row.index:
+            if pd.notna(row[col]) and any(k in str(col).upper() for k in ["MODEL", "BUS", "VEHICLE", "TYPE"]):
+                model_name = str(row[col]).strip().upper()
+                if model_name:
+                    result[model_name] = qty_veh
+                    if len(result) >= max_models:
+                        break
+
     return result
 
 def generate_qr_code(data_string):
@@ -293,33 +311,32 @@ def generate_qr_code(data_string):
         st.error(f"Error generating QR code: {e}")
         return None
 
-def extract_store_location_data_from_excel(row_data):
-    """Extract store location data from Excel row for Store Location"""
-    def get_clean_value(possible_names, default=''):
+def extract_store_location_data_from_excel(row_data, max_cells=12):
+    """Extract up to 12 store location values dynamically"""
+    values = []
+    
+    def get_clean_value(possible_names):
         for name in possible_names:
             if name in row_data:
                 val = row_data[name]
-                if pd.notna(val) and str(val).lower() not in ['nan', 'none', 'null', '']:
+                if pd.notna(val) and str(val).strip().lower() not in ['nan', 'none', 'null', '']:
                     return clean_number_format(val)
             for col in row_data.index:
                 if isinstance(col, str) and col.upper() == name.upper():
                     val = row_data[col]
-                    if pd.notna(val) and str(val).lower() not in ['nan', 'none', 'null', '']:
+                    if pd.notna(val) and str(val).strip().lower() not in ['nan', 'none', 'null', '']:
                         return clean_number_format(val)
-        return default
-    
-    store_loc_1 = get_clean_value(['Store Loc 1', 'STORE_LOC_1', 'Station Name', 'STATION NAME'], '')
-    store_loc_2 = get_clean_value(['Store Loc 2', 'STORE_LOC_2', 'Store Location', 'STORE LOCATION'], '')
-    store_loc_3 = get_clean_value(['Store Loc 3', 'STORE_LOC_3', 'ABB ZONE', 'Zone'], '')
-    store_loc_4 = get_clean_value(['Store Loc 4', 'STORE_LOC_4', 'ABB LOCATION', 'Location'], '')
-    store_loc_5 = get_clean_value(['Store Loc 5', 'STORE_LOC_5', 'ABB FLOOR', 'Floor'], '')
-    store_loc_6 = get_clean_value(['Store Loc 6', 'STORE_LOC_6', 'ABB RACK NO', 'Rack'], '')
-    store_loc_7 = get_clean_value(['Store Loc 7', 'STORE_LOC_7', 'ABB LEVEL', 'Level'], '')
-    store_loc_8 = get_clean_value(['Store Loc 8', 'STORE_LOC_8', 'ABB CELL', 'Cell'], '')
-    
-    return [store_loc_1, store_loc_2, store_loc_3, store_loc_4, store_loc_5, store_loc_6, store_loc_7, store_loc_8]
+        return None
 
-def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_col, store_loc_col, bus_model_col):
+    # Loop through possible Store Loc 1 → Store Loc 12
+    for i in range(1, max_cells + 1):
+        val = get_clean_value([f'Store Loc {i}', f'STORE_LOC_{i}'])
+        if val:
+            values.append(val)
+
+    return values
+
+def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_col, store_loc_col, bus_model_col, all_models):
     """Create a single sticker layout with border around the entire sticker"""
     # Extract data with proper number formatting
     part_no = clean_number_format(row[part_no_col]) if pd.notna(row[part_no_col]) else ""
@@ -332,11 +349,13 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     qty_veh = ""
     if qty_veh_col and qty_veh_col in row and pd.notna(row[qty_veh_col]):
         qty_veh = clean_number_format(row[qty_veh_col])
+    
     # Get all store location parts for table and QR code
     store_loc_values = extract_store_location_data_from_excel(row)
     full_store_location = " ".join([str(v) for v in store_loc_values if v])  # join non-empty values
-    # Use enhanced bus model detection
-    mtm_quantities = detect_bus_model_and_qty(row, qty_veh_col, bus_model_col)
+    
+    # Use enhanced bus model detection (now handles consolidated model:qty format)
+    mtm_quantities = detect_bus_model_and_qty(row, qty_veh_col, [bus_model_col] if bus_model_col else None)
 
     # ✅ Generate QR code only once, with full store location
     qr_data = (
@@ -387,50 +406,46 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
 
     sticker_content.append(main_table)
 
-    # Store Location section
     store_loc_label = Paragraph("Store Location", ParagraphStyle(
         name='StoreLoc', fontName='Helvetica-Bold', fontSize=20, alignment=TA_CENTER
     ))
-    
-    inner_table_width = CONTENT_BOX_WIDTH * 2 / 3
-    col_proportions = [1.4, 1.2, 0.6, 1.2, 0.6, 0.8, 0.6, 0.8]
-    total_proportion = sum(col_proportions)
-    inner_col_widths = [w * inner_table_width / total_proportion for w in col_proportions]
+    store_loc_values = [v for v in extract_store_location_data_from_excel(row) if v]  # keep only non-empty
+    if not store_loc_values:
+        store_loc_values = [""]
 
-    store_loc_values = extract_store_location_data_from_excel(row)
+    inner_table_width = CONTENT_BOX_WIDTH * 2 / 3
+    num_cols = len(store_loc_values)
+    inner_col_widths = [inner_table_width / num_cols] * num_cols
 
     store_loc_inner_table = Table(
         [store_loc_values],
         colWidths=inner_col_widths,
         rowHeights=[store_loc_row_height]
     )
-    
+
     store_loc_inner_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 18),  # Reduced font size for better fit
-        # ADDED PADDING FOR STORE LOCATION CELLS
-        ('LEFTPADDING', (0, 0), (-1, -1), 2),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+        ('FONTSIZE', (0, 0), (-1, -1), 16),
+        ('LEFTPADDING', (0, 0), (-1, -1), 1),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 1),
         ('TOPPADDING', (0, 0), (-1, -1), 2),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        # Enable text wrapping
         ('WORDWRAP', (0, 0), (-1, -1), True),
     ]))
-    
+
     store_loc_table = Table(
         [[store_loc_label, store_loc_inner_table]],
         colWidths=[CONTENT_BOX_WIDTH/3, inner_table_width],
         rowHeights=[store_loc_row_height]
     )
-    
+
     store_loc_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        # ADDED PADDING FOR STORE LOCATION SECTION
         ('LEFTPADDING', (0, 0), (-1, -1), 8),
         ('RIGHTPADDING', (0, 0), (-1, -1), 8),
         ('TOPPADDING', (0, 0), (-1, -1), 3),
@@ -442,32 +457,36 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     # Add small spacer
     sticker_content.append(Spacer(1, 0.1*cm))
 
-    # Bottom section - MTM boxes and QR code
-    # Bottom section - MTM boxes and QR code (UPDATED FOR BETTER QR CENTERING
-    mtm_box_width = 1.8*cm
-    mtm_row_height = 1.8*cm
+    # Bottom section - MTM boxes and QR code (ENHANCED FOR CONSOLIDATED QUANTITIES)
+    max_models = 5
+    mtm_box_width = 1.6 * cm
+    mtm_row_height = 1.8 * cm
 
-    position_matrix_data = [
-        ["7M", "9M", "12M"],
-        [
-            Paragraph(f"<b>{mtm_quantities['7M']}</b>", ParagraphStyle(
-                name='Bold7M', fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER
-            )) if mtm_quantities['7M'] else "",
-            Paragraph(f"<b>{mtm_quantities['9M']}</b>", ParagraphStyle(
-                name='Bold9M', fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER
-            )) if mtm_quantities['9M'] else "",
-            Paragraph(f"<b>{mtm_quantities['12M']}</b>", ParagraphStyle(
-                name='Bold12M', fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER
-            )) if mtm_quantities['12M'] else ""
-        ]
-    ]
+    headers = []
+    values = []
+
+    # Use all_models for headers, but show quantities from mtm_quantities
+    for i in range(max_models):
+        if i < len(all_models):
+            model_name = all_models[i]
+            # Get quantity from detected model quantities (handles consolidated format)
+            qty_val = mtm_quantities.get(model_name, "")
+            headers.append(model_name)
+            values.append(Paragraph(
+                f"<b>{qty_val}</b>" if qty_val else "",
+                ParagraphStyle(name=f"Qty_{model_name}", fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER)
+            ))
+        else:
+            headers.append("")
+            values.append("")
+            
+    position_matrix_data = [headers, values]
 
     mtm_table = Table(
         position_matrix_data,
-        colWidths=[mtm_box_width, mtm_box_width, mtm_box_width],
+        colWidths=[mtm_box_width] * max_models,
         rowHeights=[mtm_row_height/2, mtm_row_height/2]
     )
-
     mtm_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -502,8 +521,8 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 
-    # Calculate spacing for better QR code centering
-    total_mtm_width = 3 * mtm_box_width
+    # Calculate spacing for better QR code centering (UPDATED FOR 5 BOXES)
+    total_mtm_width = max_models * mtm_box_width
     remaining_width = CONTENT_BOX_WIDTH - total_mtm_width - qr_width
     
     # Split the remaining space more evenly for better centering
@@ -547,7 +566,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, qty_veh_
     return KeepTogether([sticker_table])
 
 def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=None):
-    """Generate sticker labels with QR code from Excel data - 2 per page"""
+    """Generate sticker labels with QR code from Excel data - 2 per page, handling duplicate parts"""
     if status_callback:
         status_callback(f"Processing file: {excel_file_path}")
 
@@ -595,8 +614,39 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
 
     bus_model_col = find_bus_model_column(original_columns)
 
+    if bus_model_col:
+        bus_model_col = bus_model_col.upper()
+
+    # ✅ NEW: Consolidate duplicate parts BEFORE processing
     if status_callback:
-        status_callback(f"Using columns - Part No: {part_no_col}, Description: {desc_col}")
+        status_callback(f"Consolidating duplicate parts...")
+    
+    df = consolidate_duplicate_parts(df, part_no_col, bus_model_col, qty_veh_col)
+    
+    if status_callback:
+        status_callback(f"After consolidation: {len(df)} unique parts")
+
+    # Get all unique models for the column headers
+    if bus_model_col and bus_model_col in df.columns:
+        all_models = set()
+        for _, row in df.iterrows():
+            # Extract models from consolidated QTY/VEH format
+            qty_veh = str(row[qty_veh_col]) if qty_veh_col and pd.notna(row[qty_veh_col]) else ""
+            if qty_veh:
+                # Look for model:qty patterns
+                model_pattern = r'([A-Za-z0-9]+):\d+'
+                found_models = re.findall(model_pattern, qty_veh.upper())
+                all_models.update(found_models)
+            
+            # Also check the bus_model_col directly
+            if pd.notna(row[bus_model_col]):
+                model_name = str(row[bus_model_col]).strip().upper()
+                if model_name:
+                    all_models.add(model_name)
+        
+        all_models = sorted(list(all_models))[:5]  # Limit to 5 models
+    else:
+        all_models = []
 
     # Create document with custom margins for 2 stickers per page
     doc = SimpleDocTemplate(output_pdf_path, pagesize=A4,
@@ -614,8 +664,9 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         # First sticker
         sticker1 = create_single_sticker(
             df.iloc[i], part_no_col, desc_col, max_capacity_col, 
-            qty_veh_col, store_loc_col, bus_model_col
+            qty_veh_col, store_loc_col, bus_model_col, all_models
         )
+        
         all_elements.append(sticker1)
         
         # Add spacer between stickers
@@ -625,7 +676,7 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         if i + 1 < total_rows:
             sticker2 = create_single_sticker(
                 df.iloc[i+1], part_no_col, desc_col, max_capacity_col,
-                qty_veh_col, store_loc_col, bus_model_col
+                qty_veh_col, store_loc_col, bus_model_col, all_models
             )
             all_elements.append(sticker2)
         
@@ -685,6 +736,14 @@ def main():
             st.subheader("📊 Data Preview (First 5 rows)")
             st.dataframe(preview_df, use_container_width=True)
             
+            # Show duplicate part info if any
+            part_col_candidates = [col for col in preview_df.columns if 'part' in col.lower() and ('no' in col.lower() or 'num' in col.lower())]
+            if part_col_candidates:
+                part_col = part_col_candidates[0]
+                duplicates = preview_df[part_col].duplicated().sum()
+                if duplicates > 0:
+                    st.info(f"ℹ️ Found {duplicates} duplicate part numbers in preview. These will be consolidated into single stickers with combined model quantities.")
+            
         except Exception as e:
             st.error(f"Error previewing file: {e}")
             return
@@ -722,7 +781,7 @@ def main():
                         with open(result_path, 'rb') as pdf_file:
                             pdf_data = pdf_file.read()
                         
-                        status_container.success("✅ Downloaded")
+                        status_container.success("✅ Labels generated successfully! Duplicate parts have been consolidated.")
                         
                         # Download button
                         st.download_button(
@@ -755,8 +814,13 @@ def main():
                 "- Excel (.xlsx, .xls) or CSV file\n"
                 "- Part Number column\n"
                 "- Description column\n"
-                "- Optional: Max Capacity, Store Location, QTY/VEH columns\n"
-                "- Optional: Bus Model column (7M, 9M, 12M)"
+                "- Optional: Max Capacity, Store Location columns (1-11)\n"
+                "- Optional: QTY/VEH column\n"
+                "- Optional: Bus Model column (D6, M, P, 55T)\n\n"
+                "**🔄 Duplicate Handling:**\n"
+                "- Duplicate part numbers are automatically consolidated\n"
+                "- Model quantities are combined in single stickers\n"
+                "- Format: MODEL1:QTY1 MODEL2:QTY2"
             )
     
     else:
@@ -785,17 +849,17 @@ def main():
         
         with col3:
             st.markdown("""
-            **🚌 Bus Model Support**
-            - Automatic 7M, 9M, 12M detection
-            - Flexible column mapping
-            - Smart quantity parsing
+            **🔄 Smart Duplicate Handling**
+            - Automatically consolidates duplicate parts
+            - Combines model quantities
+            - Reduces label count efficiently
             """)
     
     # Footer
     st.markdown("---")
     st.markdown(
         "<p style='text-align: center; color: gray; font-size: 14px;'>"
-        "© 2025 Agilomatrix - Mezzanine Label Generator v2.0</p>",
+        "© 2025 Agilomatrix - Mezzanine Label Generator v2.2 (Enhanced Duplicate Handling)</p>",
         unsafe_allow_html=True
     )
 
