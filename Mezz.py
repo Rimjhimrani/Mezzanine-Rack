@@ -19,8 +19,8 @@ STICKER_HEIGHT = 9 * cm
 STICKER_PAGESIZE = A4
 
 # Define content box dimensions (reduced to fit 2 per page)
-CONTENT_BOX_WIDTH = 17.8 * cm
-CONTENT_BOX_HEIGHT = 8.8 * cm
+CONTENT_BOX_WIDTH = 18.2 * cm
+CONTENT_BOX_HEIGHT = 9.2 * cm
 
 # Check for PIL and install if needed
 try:
