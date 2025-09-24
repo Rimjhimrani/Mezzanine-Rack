@@ -189,15 +189,17 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     total_mtm_width = max_models * mtm_box_width
     
     # --- START OF QR CODE CENTERING FIX ---
-    # Calculate the total remaining width for spacing
+    # Calculate the total space remaining after placing the MTM box and QR code
     remaining_width = PADDED_CONTENT_WIDTH - total_mtm_width - qr_width
-    # Divide the remaining space equally to center the QR code
+    # Divide the remaining space into two equal spacers to place before and after the QR code
     spacer_width = remaining_width / 2.0
     
-    # Use only one spacer before the QR code now
-    bottom_row = Table([[mtm_table, Spacer(spacer_width, 0), qr_table]], 
-                       colWidths=[total_mtm_width, spacer_width, qr_width], 
-                       rowHeights=[max(mtm_row_height, qr_height)])
+    # Construct the bottom row with the MTM box on the left and the QR code centered in the remaining space
+    bottom_row = Table(
+        [[mtm_table, Spacer(spacer_width, 0), qr_table, Spacer(spacer_width, 0)]], 
+        colWidths=[total_mtm_width, spacer_width, qr_width, spacer_width], 
+        rowHeights=[max(mtm_row_height, qr_height)]
+    )
     # --- END OF QR CODE CENTERING FIX ---
     
     bottom_row.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
@@ -361,7 +363,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.6 (Final)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.7 (Final)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
