@@ -25,41 +25,27 @@ CONTENT_BOX_HEIGHT = 9 * cm
 # Check for PIL and install if needed
 try:
     from PIL import Image as PILImage
-    PIL_AVAILABLE = True
 except ImportError:
-    PIL_AVAILABLE = False
     st.write("PIL not available. Installing...")
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pillow'])
     from PIL import Image as PILImage
-    PIL_AVAILABLE = True
 
 # Check for QR code library and install if needed
 try:
     import qrcode
-    QR_AVAILABLE = True
 except ImportError:
-    QR_AVAILABLE = False
     st.write("qrcode not available. Installing...")
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'qrcode'])
     import qrcode
-    QR_AVAILABLE = True
 
-# Define paragraph styles - UPDATED FONT SIZES WITH WORD WRAPPING
+# Define paragraph styles
 bold_style = ParagraphStyle(
-    name='Bold',
-    fontName='Helvetica-Bold',
-    fontSize=38,
-    alignment=TA_CENTER,
-    leading=38,
-    wordWrap='CJK'  # Enable word wrapping
+    name='Bold', fontName='Helvetica-Bold', fontSize=38,
+    alignment=TA_CENTER, leading=38, wordWrap='CJK'
 )
 
 def get_dynamic_desc_style(text):
-    """
-    Improved dynamic font sizing with more granular steps.
-    Font size decreases gradually from 30px to 10px based on text length.
-    Box dimensions remain unchanged.
-    """
+    """Dynamically adjust font size for the description based on text length."""
     length = len(text)
     if length <= 10: font_size = 30
     elif length <= 15: font_size = 28
@@ -85,10 +71,7 @@ qty_style = ParagraphStyle(
 )
 
 def clean_number_format(value):
-    """
-    Clean number formatting to preserve integers and handle decimals properly.
-    Returns string representation maintaining original number format.
-    """
+    """Clean number formatting to preserve integers and handle decimals properly."""
     if pd.isna(value) or value == '': return ''
     if isinstance(value, str):
         value = value.strip()
@@ -96,14 +79,14 @@ def clean_number_format(value):
         try:
             num_value = float(value)
             return str(int(num_value)) if num_value.is_integer() else str(num_value)
-        except: return value
+        except ValueError:
+            return value
     if isinstance(value, (int, float)):
-        if isinstance(value, float) and value.is_integer(): return str(int(value))
-        return str(value)
+        return str(int(value)) if float(value).is_integer() else str(value)
     return str(value)
 
 def generate_qr_code(data_string):
-    """Generate a QR code from the given data string"""
+    """Generate a QR code from the given data string."""
     try:
         qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=4)
         qr.add_data(data_string)
@@ -118,14 +101,11 @@ def generate_qr_code(data_string):
         return None
 
 def extract_store_location_data_from_excel(row_data, max_cells=12):
-    """Extract up to 12 store location values dynamically"""
+    """Extract up to 12 store location values dynamically."""
     values = []
     def get_clean_value(possible_names):
-        # Convert possible_names to uppercase for case-insensitive matching
         upper_possible = [n.upper() for n in possible_names]
-        # Create a mapping of uppercase column names to original names
         col_map = {str(k).upper(): k for k in row_data.keys()}
-        
         for name in upper_possible:
             if name in col_map:
                 original_col = col_map[name]
@@ -133,20 +113,14 @@ def extract_store_location_data_from_excel(row_data, max_cells=12):
                 if pd.notna(val) and str(val).strip().lower() not in ['nan', 'none', 'null', '']:
                     return clean_number_format(val)
         return None
-        
     for i in range(1, max_cells + 1):
-        # Check for different variations of "Store Loc"
         val = get_clean_value([f'Store Loc {i}', f'STORE_LOC_{i}', f'STORE LOC {i}'])
         if val:
             values.append(val)
     return values
 
-
 def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_models):
-    """
-    Create a single sticker layout with border around the entire sticker.
-    Uses pre-aggregated model data.
-    """
+    """Create a single sticker layout with all its components."""
     part_no = clean_number_format(row.get(part_no_col, ""))
     desc = str(row.get(desc_col, "")).strip()
     max_capacity = clean_number_format(row.get(max_capacity_col, "")) if max_capacity_col else ""
@@ -162,20 +136,17 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     qr_image = generate_qr_code(qr_data)
 
     sticker_content = []
-    header_row_height, desc_row_height, max_capacity_row_height, store_loc_row_height = 2.0*cm, 1.8*cm, 1.32*cm, 1.3*cm
+    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 2.0*cm, 1.8*cm, 1.32*cm, 1.3*cm
 
-    main_table_data = [
+    main_table = Table([
         ["Part No", Paragraph(f"{part_no}", bold_style)],
         ["Description", Paragraph(desc, get_dynamic_desc_style(desc))],
         ["Max capacity", Paragraph(str(max_capacity), qty_style)]
-    ]
-    main_table = Table(main_table_data, colWidths=[CONTENT_BOX_WIDTH/3, CONTENT_BOX_WIDTH*2/3], rowHeights=[header_row_height, desc_row_height, max_capacity_row_height])
+    ], colWidths=[CONTENT_BOX_WIDTH/3, CONTENT_BOX_WIDTH*2/3], rowHeights=[header_row_height, desc_row_height, max_cap_row_height])
     main_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black), ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (0, -1), 20), ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8), ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6), ('WORDWRAP', (0, 0), (-1, -1), True),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (0, -1), 20), ('PADDING', (0, 0), (-1, -1), 6),
     ]))
     sticker_content.append(main_table)
 
@@ -186,60 +157,50 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     inner_col_widths = [inner_table_width / num_cols] * num_cols if num_cols > 0 else [inner_table_width]
     
     store_loc_inner_table = Table([store_loc_values], colWidths=inner_col_widths, rowHeights=[store_loc_row_height])
-    store_loc_inner_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black), ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('FONTSIZE', (0, 0), (-1, -1), 16),
-    ]))
+    store_loc_inner_table.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                               ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 16)]))
     
     store_loc_table = Table([[store_loc_label, store_loc_inner_table]], colWidths=[CONTENT_BOX_WIDTH/3, inner_table_width], rowHeights=[store_loc_row_height])
-    store_loc_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black), ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
+    store_loc_table.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                                          ('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
     sticker_content.append(store_loc_table)
     sticker_content.append(Spacer(1, 0.1*cm))
 
     max_models, mtm_box_width, mtm_row_height = 5, 1.6 * cm, 1.8 * cm
     headers, values = [], []
-    for i in range(max_models):
-        if i < len(all_models):
-            model_name = all_models[i]
-            headers.append(model_name)
-            qty_val = mtm_quantities.get(model_name, "")
-            values.append(Paragraph(f"<b>{clean_number_format(qty_val)}</b>" if qty_val else "",
-                ParagraphStyle(name=f"Qty_{model_name}", fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER)))
-        else:
-            headers.append(""), values.append("")
+    for model_name in all_models:
+        headers.append(model_name)
+        qty_val = mtm_quantities.get(model_name, "") if model_name else ""
+        values.append(Paragraph(f"<b>{clean_number_format(qty_val)}</b>" if qty_val else "",
+            ParagraphStyle(name=f"Qty_{model_name}", fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER)))
     
     mtm_table = Table([headers, values], colWidths=[mtm_box_width] * max_models, rowHeights=[mtm_row_height/2, mtm_row_height/2])
     mtm_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black), ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 18),
     ]))
 
     qr_width, qr_height = 2.5*cm, 2.5*cm
     qr_table = Table([[qr_image]], colWidths=[qr_width], rowHeights=[qr_height]) if qr_image else Table([["QR"]], colWidths=[qr_width], rowHeights=[qr_height])
-    qr_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
+    qr_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
     
     total_mtm_width = max_models * mtm_box_width
     remaining_width = CONTENT_BOX_WIDTH - total_mtm_width - qr_width
-    left_spacer_width, right_spacer_width = remaining_width * 0.3, remaining_width * 0.7
     
-    bottom_row = Table([[mtm_table, "", qr_table, ""]], colWidths=[total_mtm_width, left_spacer_width, qr_width, right_spacer_width], rowHeights=[max(mtm_row_height, qr_height)])
-    bottom_row.setStyle(TableStyle([('ALIGN', (0, 0), (0, 0), 'LEFT'), ('ALIGN', (2, 0), (2, 0), 'CENTER'), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
+    bottom_row = Table([[mtm_table, Spacer(remaining_width, 0), qr_table]], colWidths=[total_mtm_width, remaining_width, qr_width], rowHeights=[max(mtm_row_height, qr_height)])
+    bottom_row.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
     sticker_content.append(bottom_row)
 
     sticker_table = Table([[sticker_content]], colWidths=[CONTENT_BOX_WIDTH], rowHeights=[CONTENT_BOX_HEIGHT])
-    sticker_table.setStyle(TableStyle([('BOX', (0, 0), (-1, -1), 2, colors.black), ('LEFTPADDING', (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4), ('TOPPADDING', (0, 0), (-1, -1), 0), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
+    sticker_table.setStyle(TableStyle([('BOX', (0, 0), (-1, -1), 2, colors.black), ('PADDING', (0, 0), (-1, -1), 4)]))
     
     return KeepTogether([sticker_table])
 
 def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=None):
     """
-    Generate sticker labels from a file with a 'wide' format, where
-    bus models are columns C-G. Handles empty model columns correctly.
+    Generate sticker labels from a file with bus models in columns C-G.
+    Correctly handles empty or 'Unnamed' column headers.
     """
     if status_callback: status_callback(f"Processing file: {excel_file_path}")
     try:
@@ -251,8 +212,7 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
 
     original_columns = df.columns.tolist()
     
-    # Identify standard columns by pattern, case-insensitively
-    part_no_col = next((c for c in original_columns if 'PART' in str(c).upper() and ('NO' in str(c).upper() or 'NUM' in str(c).upper())), original_columns[0])
+    part_no_col = next((c for c in original_columns if 'PART' in str(c).upper() and 'NO' in str(c).upper()), original_columns[0])
     desc_col = next((c for c in original_columns if 'DESC' in str(c).upper()), original_columns[1] if len(original_columns) > 1 else part_no_col)
     max_capacity_col = next((c for c in original_columns if 'MAX' in str(c).upper() and 'CAPACITY' in str(c).upper()), None)
     
@@ -260,55 +220,48 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         if status_callback: status_callback("Error: File must have at least 3 columns for model data (C-G).")
         return None
         
-    # --- START: MODIFIED LOGIC FOR EMPTY MODELS ---
-    # Define the fixed range for model columns (C to G)
+    # --- START: FINAL LOGIC FOR UNNAMED/EMPTY COLUMNS ---
     model_cols_original = original_columns[2:7] if len(original_columns) >= 7 else original_columns[2:]
     
-    # Create a clean list of model names for the sticker header, preserving empty slots
     all_models = []
     for col in model_cols_original:
-        if pd.isna(col) or str(col).strip() == '':
-            all_models.append('')  # Add an empty string for blank headers
+        col_str = str(col).strip()
+        # Check for empty, NaN, or pandas default "Unnamed: X"
+        if pd.isna(col) or col_str == '' or col_str.lower().startswith('unnamed:'):
+            all_models.append('')  # Treat as a blank model slot
         else:
-            all_models.append(str(col).strip().upper())
+            all_models.append(col_str.upper())
             
-    # Create a mapping of (original_column_name, cleaned_model_name) for data extraction
     model_mapping = list(zip(model_cols_original, all_models))
 
-    # Function to extract model quantities for a single row using the mapping
     def get_model_quantities(row, mapping):
         model_quantities = {}
         for original_col, cleaned_model_name in mapping:
-            # Skip if there's no model name for this slot (it's a blank column header)
-            if not cleaned_model_name:
-                continue
-            
-            # Check for a quantity value using the original column name
+            if not cleaned_model_name: continue
             if original_col in row and pd.notna(row[original_col]):
                 qty = clean_number_format(row[original_col])
                 if qty and str(qty) != '0':
                     model_quantities[cleaned_model_name] = qty
         return model_quantities
 
-    # Apply the function to each row to create the aggregated model data
     df['aggregated_models'] = df.apply(lambda row: get_model_quantities(row, model_mapping), axis=1)
-    # --- END: MODIFIED LOGIC ---
-
-    processed_df = df
+    # --- END: FINAL LOGIC ---
 
     doc = SimpleDocTemplate(output_pdf_path, pagesize=A4, topMargin=1*cm, bottomMargin=1*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
     all_elements = []
-    total_stickers = len(processed_df)
+    total_stickers = len(df)
 
     for i in range(0, total_stickers, 2):
         if status_callback: status_callback(f"Creating stickers {i+1}-{min(i+2, total_stickers)} of {total_stickers}")
-
-        sticker1 = create_single_sticker(processed_df.iloc[i].to_dict(), part_no_col, desc_col, max_capacity_col, all_models)
+        
+        row_data1 = df.iloc[i].to_dict()
+        sticker1 = create_single_sticker(row_data1, part_no_col, desc_col, max_capacity_col, all_models)
         all_elements.append(sticker1)
-        all_elements.append(Spacer(1, 1.5*cm))
-
+        
         if i + 1 < total_stickers:
-            sticker2 = create_single_sticker(processed_df.iloc[i+1].to_dict(), part_no_col, desc_col, max_capacity_col, all_models)
+            all_elements.append(Spacer(1, 1.5*cm))
+            row_data2 = df.iloc[i+1].to_dict()
+            sticker2 = create_single_sticker(row_data2, part_no_col, desc_col, max_capacity_col, all_models)
             all_elements.append(sticker2)
 
         if i + 2 < total_stickers:
@@ -332,14 +285,14 @@ def main():
     st.header("📁 File Upload")
     uploaded_file = st.file_uploader("Choose an Excel or CSV file", type=['xlsx', 'xls', 'csv'], help="Upload your file with parts data")
 
-    if uploaded_file is not None:
+    if uploaded_file:
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_file.name)[1]) as tmp_file:
             tmp_file.write(uploaded_file.getvalue())
             temp_input_path = tmp_file.name
 
         st.success(f"✅ File uploaded: {uploaded_file.name}")
         try:
-            preview_df = pd.read_excel(temp_input_path).head(5) if not uploaded_file.name.lower().endswith('.csv') else pd.read_csv(temp_input_path).head(5)
+            preview_df = pd.read_excel(temp_input_path, header=0).head(5) if uploaded_file.name.lower().endswith(('xlsx', 'xls')) else pd.read_csv(temp_input_path, header=0).head(5)
             st.subheader("📊 Data Preview (First 5 rows)")
             st.dataframe(preview_df, use_container_width=True)
         except Exception as e:
@@ -363,10 +316,10 @@ def main():
                         status_container.success("✅ PDF Generation Complete!")
                         st.download_button(
                             label="📥 Download PDF Labels", data=pdf_data,
-                            file_name=f"mezzanine_labels_{uploaded_file.name.split('.')[0]}.pdf",
+                            file_name=f"mezzanine_labels_{os.path.splitext(uploaded_file.name)[0]}.pdf",
                             mime="application/pdf", use_container_width=True)
                     else:
-                        status_container.error("❌ Failed to generate PDF labels. Please check file format.")
+                        status_container.error("❌ Failed to generate PDF. Please check file format and requirements.")
                 except Exception as e:
                     status_container.error(f"❌ An unexpected error occurred: {str(e)}")
                 finally:
@@ -378,8 +331,8 @@ def main():
                 "**📋 File Format Requirements:**\n"
                 "- Column A: Part Number\n"
                 "- Column B: Part Description\n"
-                "- **Columns C to G**: Bus Models (e.g., 'M', 'S', 'P') in the header.\n"
-                "- *Blank headers in C-G are fine and will be shown as empty boxes.*\n"
+                "- **Columns C to G**: Bus Models (e.g., 'M', 'S') in the header.\n"
+                "- *Blank/empty headers in C-G are handled correctly.*\n"
                 "- Cells under C-G must contain the quantity for that model.\n"
                 "- Optional: `Max Capacity`, `Store Loc...` columns."
             )
@@ -389,10 +342,10 @@ def main():
         col1, col2, col3 = st.columns(3)
         with col1: st.markdown(" **🏷️ Professional Labels** \n - Clean, readable design\n - Optimized for printing\n - 2 labels per page")
         with col2: st.markdown(" **📱 QR Code Integration** \n - Automatic QR code generation\n - Contains all part information\n - Easy scanning and tracking")
-        with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Correctly handles empty model slots\n - Aggregates data onto one sticker")
+        with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.1 (Corrected Empty Models)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.2 (Final)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
