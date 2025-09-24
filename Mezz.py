@@ -121,23 +121,35 @@ def extract_store_location_data_from_excel(row_data, max_cells=12):
     """Extract up to 12 store location values dynamically"""
     values = []
     def get_clean_value(possible_names):
-        for name in possible_names:
-            if name in row_data and pd.notna(row_data[name]) and str(row_data[name]).strip().lower() not in ['nan', 'none', 'null', '']:
-                return clean_number_format(row_data[name])
+        # Convert possible_names to uppercase for case-insensitive matching
+        upper_possible = [n.upper() for n in possible_names]
+        # Create a mapping of uppercase column names to original names
+        col_map = {str(k).upper(): k for k in row_data.keys()}
+        
+        for name in upper_possible:
+            if name in col_map:
+                original_col = col_map[name]
+                val = row_data[original_col]
+                if pd.notna(val) and str(val).strip().lower() not in ['nan', 'none', 'null', '']:
+                    return clean_number_format(val)
         return None
+        
     for i in range(1, max_cells + 1):
+        # Check for different variations of "Store Loc"
         val = get_clean_value([f'Store Loc {i}', f'STORE_LOC_{i}', f'STORE LOC {i}'])
-        if val: values.append(val)
+        if val:
+            values.append(val)
     return values
+
 
 def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_models):
     """
     Create a single sticker layout with border around the entire sticker.
     Uses pre-aggregated model data.
     """
-    part_no = clean_number_format(row[part_no_col]) if part_no_col in row and pd.notna(row[part_no_col]) else ""
-    desc = str(row[desc_col]).strip() if desc_col in row and pd.notna(row[desc_col]) else ""
-    max_capacity = clean_number_format(row[max_capacity_col]) if max_capacity_col and max_capacity_col in row and pd.notna(row[max_capacity_col]) else ""
+    part_no = clean_number_format(row.get(part_no_col, ""))
+    desc = str(row.get(desc_col, "")).strip()
+    max_capacity = clean_number_format(row.get(max_capacity_col, "")) if max_capacity_col else ""
     
     store_loc_values = extract_store_location_data_from_excel(row)
     full_store_location = " ".join([str(v) for v in store_loc_values if v])
@@ -227,7 +239,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
 def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=None):
     """
     Generate sticker labels from a file with a 'wide' format, where
-    bus models are columns C-G.
+    bus models are columns C-G. Handles empty model columns correctly.
     """
     if status_callback: status_callback(f"Processing file: {excel_file_path}")
     try:
@@ -237,51 +249,60 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         if status_callback: status_callback(f"Error reading file: {e}")
         return None
 
-    # --- START: NEW LOGIC FOR WIDE FORMAT ---
     original_columns = df.columns.tolist()
     
-    # Identify standard columns by pattern
+    # Identify standard columns by pattern, case-insensitively
     part_no_col = next((c for c in original_columns if 'PART' in str(c).upper() and ('NO' in str(c).upper() or 'NUM' in str(c).upper())), original_columns[0])
-    desc_col = next((c for c in original_columns if 'DESC' in str(c).upper()), original_columns[1])
+    desc_col = next((c for c in original_columns if 'DESC' in str(c).upper()), original_columns[1] if len(original_columns) > 1 else part_no_col)
     max_capacity_col = next((c for c in original_columns if 'MAX' in str(c).upper() and 'CAPACITY' in str(c).upper()), None)
     
-    # Define the fixed range for model columns (C to G)
-    # Column C is index 2, G is index 6. Slice is exclusive at the end.
     if len(original_columns) < 3:
-        if status_callback: status_callback("Error: File must have at least 3 columns to contain model data in C-G range.")
+        if status_callback: status_callback("Error: File must have at least 3 columns for model data (C-G).")
         return None
         
-    model_cols = original_columns[2:7] if len(original_columns) >= 7 else original_columns[2:]
-    all_models = [str(col).strip().upper() for col in model_cols]
+    # --- START: MODIFIED LOGIC FOR EMPTY MODELS ---
+    # Define the fixed range for model columns (C to G)
+    model_cols_original = original_columns[2:7] if len(original_columns) >= 7 else original_columns[2:]
     
-    # Function to extract model quantities for a single row
-    def get_model_quantities(row, model_columns):
+    # Create a clean list of model names for the sticker header, preserving empty slots
+    all_models = []
+    for col in model_cols_original:
+        if pd.isna(col) or str(col).strip() == '':
+            all_models.append('')  # Add an empty string for blank headers
+        else:
+            all_models.append(str(col).strip().upper())
+            
+    # Create a mapping of (original_column_name, cleaned_model_name) for data extraction
+    model_mapping = list(zip(model_cols_original, all_models))
+
+    # Function to extract model quantities for a single row using the mapping
+    def get_model_quantities(row, mapping):
         model_quantities = {}
-        for model_col_name in model_columns:
-            # Check if the column exists in the row and has a value
-            if model_col_name in row and pd.notna(row[model_col_name]):
-                qty = clean_number_format(row[model_col_name])
-                if qty and qty != '0':  # Only add if there is a quantity
-                    model_name = str(model_col_name).strip().upper()
-                    model_quantities[model_name] = qty
+        for original_col, cleaned_model_name in mapping:
+            # Skip if there's no model name for this slot (it's a blank column header)
+            if not cleaned_model_name:
+                continue
+            
+            # Check for a quantity value using the original column name
+            if original_col in row and pd.notna(row[original_col]):
+                qty = clean_number_format(row[original_col])
+                if qty and str(qty) != '0':
+                    model_quantities[cleaned_model_name] = qty
         return model_quantities
 
     # Apply the function to each row to create the aggregated model data
-    df['aggregated_models'] = df.apply(lambda row: get_model_quantities(row, model_cols), axis=1)
+    df['aggregated_models'] = df.apply(lambda row: get_model_quantities(row, model_mapping), axis=1)
+    # --- END: MODIFIED LOGIC ---
 
-    # Each row is now a unique sticker, no grouping is needed
     processed_df = df
-    # --- END: NEW LOGIC ---
 
     doc = SimpleDocTemplate(output_pdf_path, pagesize=A4, topMargin=1*cm, bottomMargin=1*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
     all_elements = []
     total_stickers = len(processed_df)
 
-    # Process data in pairs for 2 per page
     for i in range(0, total_stickers, 2):
         if status_callback: status_callback(f"Creating stickers {i+1}-{min(i+2, total_stickers)} of {total_stickers}")
 
-        # Pass the original column names found earlier
         sticker1 = create_single_sticker(processed_df.iloc[i].to_dict(), part_no_col, desc_col, max_capacity_col, all_models)
         all_elements.append(sticker1)
         all_elements.append(Spacer(1, 1.5*cm))
@@ -345,7 +366,7 @@ def main():
                             file_name=f"mezzanine_labels_{uploaded_file.name.split('.')[0]}.pdf",
                             mime="application/pdf", use_container_width=True)
                     else:
-                        status_container.error("❌ Failed to generate PDF labels. Check file format.")
+                        status_container.error("❌ Failed to generate PDF labels. Please check file format.")
                 except Exception as e:
                     status_container.error(f"❌ An unexpected error occurred: {str(e)}")
                 finally:
@@ -354,12 +375,13 @@ def main():
 
         with col2:
             st.info(
-                "**📋 New File Requirements:**\n"
+                "**📋 File Format Requirements:**\n"
                 "- Column A: Part Number\n"
                 "- Column B: Part Description\n"
                 "- **Columns C to G**: Bus Models (e.g., 'M', 'S', 'P') in the header.\n"
-                "- The cells under C-G should contain the quantity for that model.\n"
-                "- Optional: `Max Capacity`, `Store Location` columns."
+                "- *Blank headers in C-G are fine and will be shown as empty boxes.*\n"
+                "- Cells under C-G must contain the quantity for that model.\n"
+                "- Optional: `Max Capacity`, `Store Loc...` columns."
             )
     else:
         st.info("👆 Please upload an Excel or CSV file to get started")
@@ -367,10 +389,10 @@ def main():
         col1, col2, col3 = st.columns(3)
         with col1: st.markdown(" **🏷️ Professional Labels** \n - Clean, readable design\n - Optimized for printing\n - 2 labels per page")
         with col2: st.markdown(" **📱 QR Code Integration** \n - Automatic QR code generation\n - Contains all part information\n - Easy scanning and tracking")
-        with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns\n - Aggregates quantities onto one sticker\n - Reduces redundant labels")
+        with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Correctly handles empty model slots\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.0 (Wide Format)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.1 (Corrected Empty Models)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
