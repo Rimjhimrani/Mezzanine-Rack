@@ -200,7 +200,6 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     headers, values = [], []
     for model_name in all_models:
         headers.append(model_name)
-        # Only try to get quantity if the model_name is not an empty string
         qty_val = mtm_quantities.get(model_name, "") if model_name else ""
         values.append(Paragraph(f"<b>{clean_number_format(qty_val)}</b>" if qty_val else "",
             ParagraphStyle(name=f"Qty_{model_name}", fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER)))
@@ -225,8 +224,23 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     sticker_content.append(bottom_row)
 
     sticker_table = Table([[sticker_content]], colWidths=[CONTENT_BOX_WIDTH], rowHeights=[CONTENT_BOX_HEIGHT])
-    sticker_table.setStyle(TableStyle([('BOX', (0, 0), (-1, -1), 2, colors.black), ('LEFTPADDING', (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4), ('TOPPADDING', (0, 0), (-1, -1), 0), ('BOTTOMPADDING', (0, 0), (-1, -1), 4)]))
+    
+    # --- START OF FIX ---
+    # The fix is to add consistent padding on all sides of the main sticker box.
+    # This creates a gap and prevents the inner table borders from overlapping
+    # with the outer main border.
+    sticker_table.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 2, colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        
+        # Consistent padding to create an inner margin
+        ('LEFTPADDING', (0, 0), (-1, -1), 5),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    # --- END OF FIX ---
     
     return KeepTogether([sticker_table])
 
@@ -253,15 +267,13 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         if status_callback: status_callback("Error: File must have at least 3 columns for model data (C-G).")
         return None
         
-    # --- START: CORRECTED LOGIC FOR UNNAMED/EMPTY MODELS ---
     model_cols_original = original_columns[2:7] if len(original_columns) >= 7 else original_columns[2:]
     
     all_models = []
     for col in model_cols_original:
         col_str = str(col).strip()
-        # Check for empty, NaN, or pandas default "Unnamed: X" names
         if pd.isna(col) or col_str == '' or col_str.lower().startswith('unnamed:'):
-            all_models.append('')  # Treat as a blank model slot
+            all_models.append('')
         else:
             all_models.append(col_str.upper())
             
@@ -280,7 +292,6 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         return model_quantities
 
     df['aggregated_models'] = df.apply(lambda row: get_model_quantities(row, model_mapping), axis=1)
-    # --- END: CORRECTED LOGIC ---
 
     processed_df = df
 
@@ -295,7 +306,7 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         all_elements.append(sticker1)
         
         if i + 1 < total_stickers:
-            all_elements.append(Spacer(1, 1.5*cm)) # Add space between stickers on the same page
+            all_elements.append(Spacer(1, 1.5*cm))
             sticker2 = create_single_sticker(processed_df.iloc[i+1].to_dict(), part_no_col, desc_col, max_capacity_col, all_models)
             all_elements.append(sticker2)
 
@@ -380,7 +391,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.2 (Final)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.3 (Layout Fix)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
