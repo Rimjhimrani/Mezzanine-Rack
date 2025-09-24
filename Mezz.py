@@ -51,14 +51,12 @@ bold_style = ParagraphStyle(
     fontSize=38,
     alignment=TA_CENTER,
     leading=38,
-    wordWrap='CJK'  # Enable word wrapping
+    wordWrap='CJK'
 )
 
 def get_dynamic_desc_style(text):
     """
     Improved dynamic font sizing with more granular steps.
-    Font size decreases gradually from 30px to 10px based on text length.
-    Box dimensions remain unchanged.
     """
     length = len(text)
     if length <= 10: font_size = 30
@@ -87,7 +85,6 @@ qty_style = ParagraphStyle(
 def clean_number_format(value):
     """
     Clean number formatting to preserve integers and handle decimals properly.
-    Returns string representation maintaining original number format.
     """
     if pd.isna(value) or value == '': return ''
     if isinstance(value, str):
@@ -123,7 +120,6 @@ def extract_store_location_data_from_excel(row_data, max_cells=12):
     def get_clean_value(possible_names):
         upper_possible = [n.upper() for n in possible_names]
         col_map = {str(k).upper(): k for k in row_data.keys()}
-        
         for name in upper_possible:
             if name in col_map:
                 original_col = col_map[name]
@@ -131,7 +127,6 @@ def extract_store_location_data_from_excel(row_data, max_cells=12):
                 if pd.notna(val) and str(val).strip().lower() not in ['nan', 'none', 'null', '']:
                     return clean_number_format(val)
         return None
-        
     for i in range(1, max_cells + 1):
         val = get_clean_value([f'Store Loc {i}', f'STORE_LOC_{i}', f'STORE LOC {i}'])
         if val:
@@ -141,8 +136,7 @@ def extract_store_location_data_from_excel(row_data, max_cells=12):
 
 def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_models):
     """
-    Create a single sticker layout with border around the entire sticker.
-    Uses pre-aggregated model data.
+    Create a single sticker layout with all components.
     """
     part_no = clean_number_format(row.get(part_no_col, ""))
     desc = str(row.get(desc_col, "")).strip()
@@ -226,19 +220,17 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     sticker_table = Table([[sticker_content]], colWidths=[CONTENT_BOX_WIDTH], rowHeights=[CONTENT_BOX_HEIGHT])
     
     # --- START OF FIX ---
-    # The fix is to add consistent padding on all sides of the main sticker box.
-    # This creates a gap and prevents the inner table borders from overlapping
-    # with the outer main border.
+    # The fix is to set TOPPADDING to 0 so the content touches the top border.
+    # A small amount of padding is kept on other sides for aesthetic balance.
     sticker_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 2, colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         
-        # Consistent padding to create an inner margin
-        ('LEFTPADDING', (0, 0), (-1, -1), 5),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        # Padding adjustments for final layout
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 0), # This removes the top gap
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ]))
     # --- END OF FIX ---
     
@@ -246,8 +238,8 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
 
 def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=None):
     """
-    Generate sticker labels from a file with a 'wide' format, where
-    bus models are columns C-G. Handles empty or 'Unnamed' model columns correctly.
+    Generate sticker labels from a file with bus models in columns C-G.
+    Correctly handles empty or 'Unnamed' column headers.
     """
     if status_callback: status_callback(f"Processing file: {excel_file_path}")
     try:
@@ -391,7 +383,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.3 (Layout Fix)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.4 (Final Layout)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
