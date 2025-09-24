@@ -13,12 +13,12 @@ import subprocess
 import sys
 import tempfile
 
-# Define sticker dimensions - Updated for 2 per page
+# Define sticker dimensions
 STICKER_WIDTH = 18 * cm
 STICKER_HEIGHT = 9 * cm
 STICKER_PAGESIZE = A4
 
-# Define content box dimensions (reduced to fit 2 per page)
+# Define content box dimensions
 CONTENT_BOX_WIDTH = 18 * cm
 CONTENT_BOX_HEIGHT = 9 * cm
 
@@ -135,16 +135,10 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
                f"Store Location: {full_store_location}\nQTY/VEH: {qty_veh_string}")
     qr_image = generate_qr_code(qr_data)
     
-    # --- START OF FIX ---
-    # Define a width for the content that is slightly narrower than the sticker itself.
-    # This creates the visual padding on the left and right sides.
     PADDED_CONTENT_WIDTH = CONTENT_BOX_WIDTH - (0.2 * cm) 
-    # --- END OF FIX ---
-
     sticker_content = []
     header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 2.0*cm, 1.8*cm, 1.32*cm, 1.3*cm
 
-    # Build the main info table using the new padded width
     main_table = Table([
         ["Part No", Paragraph(f"{part_no}", bold_style)],
         ["Description", Paragraph(desc, get_dynamic_desc_style(desc))],
@@ -157,7 +151,6 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     ]))
     sticker_content.append(main_table)
 
-    # Build the store location table using the new padded width
     store_loc_label = Paragraph("Store Location", ParagraphStyle(name='StoreLoc', fontName='Helvetica-Bold', fontSize=20, alignment=TA_CENTER))
     store_loc_values = [v for v in extract_store_location_data_from_excel(row) if v] or [""]
     inner_table_width = PADDED_CONTENT_WIDTH * 2 / 3
@@ -174,7 +167,6 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     sticker_content.append(store_loc_table)
     sticker_content.append(Spacer(1, 0.1*cm))
 
-    # Build the bottom row (MTM and QR) using the new padded width
     max_models, mtm_box_width, mtm_row_height = 5, 1.6 * cm, 1.8 * cm
     headers, values = [], []
     for model_name in all_models:
@@ -195,16 +187,23 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     qr_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
     
     total_mtm_width = max_models * mtm_box_width
-    remaining_width = PADDED_CONTENT_WIDTH - total_mtm_width - qr_width
     
-    bottom_row = Table([[mtm_table, Spacer(remaining_width, 0), qr_table]], colWidths=[total_mtm_width, remaining_width, qr_width], rowHeights=[max(mtm_row_height, qr_height)])
+    # --- START OF QR CODE CENTERING FIX ---
+    # Calculate the total remaining width for spacing
+    remaining_width = PADDED_CONTENT_WIDTH - total_mtm_width - qr_width
+    # Divide the remaining space equally to center the QR code
+    spacer_width = remaining_width / 2.0
+    
+    # Use only one spacer before the QR code now
+    bottom_row = Table([[mtm_table, Spacer(spacer_width, 0), qr_table]], 
+                       colWidths=[total_mtm_width, spacer_width, qr_width], 
+                       rowHeights=[max(mtm_row_height, qr_height)])
+    # --- END OF QR CODE CENTERING FIX ---
+    
     bottom_row.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
     sticker_content.append(bottom_row)
 
-    # The final sticker table wrapper. It has the full width.
     sticker_table = Table([[sticker_content]], colWidths=[CONTENT_BOX_WIDTH], rowHeights=[CONTENT_BOX_HEIGHT])
-    
-    # This style centers the narrower content, creating the left/right margins, and aligns it to the top.
     sticker_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 2, colors.black),
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
@@ -362,7 +361,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.5 (Final)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.6 (Final)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
