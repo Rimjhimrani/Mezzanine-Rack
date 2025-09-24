@@ -441,6 +441,15 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         return None
 
     original_columns = df.columns.tolist()
+
+    # --- START OF MODIFICATION ---
+    # Restrict the search for the bus model column to columns C through G.
+    # Column C is index 2, and G is index 6. The slice end is exclusive (7).
+    # This also safely handles files with fewer than 7 columns.
+    model_search_columns = original_columns[2:7] if len(original_columns) >= 7 else original_columns[2:]
+    bus_model_col = find_bus_model_column(model_search_columns)
+    # --- END OF MODIFICATION ---
+
     df.columns = [col.upper() if isinstance(col, str) else col for col in df.columns]
     cols = df.columns.tolist()
 
@@ -448,12 +457,13 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
     desc_col = next((c for c in cols if 'DESC' in c), next((c for c in cols if 'NAME' in c), cols[1] if len(cols) > 1 else part_no_col))
     max_capacity_col = next((c for c in cols if 'MAX' in c and 'CAPACITY' in c), next((c for c in cols if 'CAPACITY' in c), next((c for c in cols if 'QTY' in c), None)))
     qty_veh_col = next((c for c in cols if any(t in c for t in ['QTY/VEH', 'QTY_VEH', 'QTY PER VEH', 'QTYVEH', 'QTYPERCAR', 'QTYCAR', 'QTY/CAR'])), None)
-    bus_model_col = find_bus_model_column(original_columns)
-
-    if bus_model_col: bus_model_col = bus_model_col.upper()
+    
+    # The bus_model_col is now found from the restricted list above
+    if bus_model_col:
+        bus_model_col = bus_model_col.upper()
 
     if not all([part_no_col, desc_col, qty_veh_col, bus_model_col]):
-        error_msg = "Error: Could not find all required columns (Part No, Description, QTY/VEH, Bus Model)."
+        error_msg = "Error: Could not find all required columns (Part No, Description, QTY/VEH, Bus Model in columns C-G)."
         if status_callback: status_callback(error_msg)
         return None
 
@@ -602,7 +612,7 @@ def main():
                 "- Excel (.xlsx, .xls) or CSV file\n"
                 "- Part Number & Description columns\n"
                 "- **Required**: `QTY/VEH` column\n"
-                "- **Required**: `Bus Model` column (e.g., S, P)\n"
+                "- **Required**: `Bus Model` column (in C-G)\n"
                 "- Optional: `Max Capacity`, `Store Location` columns"
             )
 
@@ -621,7 +631,7 @@ def main():
     st.markdown("---")
     st.markdown(
         "<p style='text-align: center; color: gray; font-size: 14px;'>"
-        "© 2025 Agilomatrix - Mezzanine Label Generator v2.3 (Enhanced Grouping)</p>",
+        "© 2025 Agilomatrix - Mezzanine Label Generator v2.4 (Fixed Column Search)</p>",
         unsafe_allow_html=True
     )
 
