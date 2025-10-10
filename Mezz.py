@@ -183,7 +183,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     ]))
     sticker_content.append(main_table)
 
-    store_loc_label = Paragraph("Store<br/>Location", store_loc_label_style)
+    store_loc_label = Paragraph("Store Location", store_loc_label_style)
     store_loc_values = [v for v in extract_store_location_data_from_excel(row) if v] or [""]
     inner_table_width = PADDED_CONTENT_WIDTH * 2 / 3
     num_cols = len(store_loc_values)
