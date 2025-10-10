@@ -7,7 +7,7 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Paragraph, PageBreak, Image, KeepTogether
 from reportlab.lib.units import cm
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_LEFT, TA_CENTER
+from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from io import BytesIO
 import subprocess
 import sys
@@ -95,7 +95,8 @@ def generate_qr_code(data_string):
         img_buffer = BytesIO()
         qr_img.save(img_buffer, format='PNG')
         img_buffer.seek(0)
-        return Image(img_buffer, width=2.2*cm, height=2.2*cm)
+        # Set a fixed size for the QR code image itself
+        return Image(img_buffer, width=2.5*cm, height=2.5*cm)
     except Exception as e:
         st.error(f"Error generating QR code: {e}")
         return None
@@ -167,9 +168,18 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     sticker_content.append(store_loc_table)
     sticker_content.append(Spacer(1, 0.1*cm))
 
-    # --- THIS IS THE CORRECTED LINE ---
-    max_models, mtm_box_width, mtm_row_height = 5, 1.35 * cm, 1.8 * cm
-    
+    # --- START OF NEW, ROBUST BOTTOM ROW LOGIC ---
+
+    # 1. Define the total available width and allocate it.
+    bottom_row_width = PADDED_CONTENT_WIDTH
+    mtm_section_width = bottom_row_width * 0.7  # 70% for models
+    qr_section_width = bottom_row_width * 0.3   # 30% for QR code
+
+    # 2. Create the MTM (models) table. Its own width is now relative to its container.
+    max_models = 5
+    mtm_row_height = 2.6 * cm  # Increased height slightly for better QR alignment
+    mtm_box_width = mtm_section_width / max_models # Each column gets an equal share of the MTM section width
+
     headers, values = [], []
     for model_name in all_models:
         headers.append(model_name)
@@ -179,27 +189,32 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     
     mtm_table = Table([headers, values], colWidths=[mtm_box_width] * max_models, rowHeights=[mtm_row_height/2, mtm_row_height/2])
     mtm_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 18),
     ]))
 
-    qr_width, qr_height = 2.5*cm, 2.5*cm
-    qr_table = Table([[qr_image]], colWidths=[qr_width], rowHeights=[qr_height]) if qr_image else Table([["QR"]], colWidths=[qr_width], rowHeights=[qr_height])
-    qr_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
-    
-    total_mtm_width = max_models * mtm_box_width
-    remaining_width = PADDED_CONTENT_WIDTH - total_mtm_width - qr_width
-    spacer_width = remaining_width / 2.0 if remaining_width > 0 else 0
-    
-    bottom_row = Table(
-        [[mtm_table, Spacer(spacer_width, 0), qr_table, Spacer(spacer_width, 0)]], 
-        colWidths=[total_mtm_width, spacer_width, qr_width, spacer_width], 
-        rowHeights=[max(mtm_row_height, qr_height)]
+    # 3. Create the QR code element. It will be centered automatically by the parent table cell.
+    qr_element = qr_image if qr_image else Paragraph("QR", ParagraphStyle(name='qr-placeholder', alignment=TA_CENTER))
+
+    # 4. Create the final 2-column parent table. This is the key change.
+    bottom_row_table = Table(
+        [[mtm_table, qr_element]],
+        colWidths=[mtm_section_width, qr_section_width],
+        rowHeights=[mtm_row_height]
     )
-    
-    bottom_row.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
-    sticker_content.append(bottom_row)
+    bottom_row_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (0, 0), (0, 0), 'LEFT'),      # Align MTM table to the left of its cell
+        ('ALIGN', (-1, -1), (-1, -1), 'CENTER'), # Align QR code to the center of its cell
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+    ]))
+
+    sticker_content.append(bottom_row_table)
+    # --- END OF NEW, ROBUST BOTTOM ROW LOGIC ---
 
     sticker_table = Table([[sticker_content]], colWidths=[CONTENT_BOX_WIDTH], rowHeights=[CONTENT_BOX_HEIGHT])
     sticker_table.setStyle(TableStyle([
@@ -364,7 +379,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v4.2 (Final Layout Fix)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v5.0 (Robust Layout Engine)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
