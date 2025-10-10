@@ -168,7 +168,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     sticker_content.append(Spacer(1, 0.1*cm))
 
     # --- THIS IS THE CORRECTED LINE ---
-    max_models, mtm_box_width, mtm_row_height = 5, 1.4 * cm, 1.8 * cm
+    max_models, mtm_box_width, mtm_row_height = 5, 1.35 * cm, 1.8 * cm
     
     headers, values = [], []
     for model_name in all_models:
@@ -268,8 +268,8 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
     current_row_index = 0
     try:
         for i in range(total_stickers):
-            current_row_index = i + 2 # Use 2-based index for user-facing messages to match Excel rows
-            if status_callback: status_callback(f"⚙️ Creating sticker for row {current_row_index} of {total_stickers+1}...")
+            current_row_index = i + 2 # Use 2-based index to match Excel row number
+            if status_callback: status_callback(f"⚙️ Creating sticker for row {current_row_index}...")
             
             row_data = df.iloc[i].to_dict()
             sticker = create_single_sticker(row_data, part_no_col, desc_col, max_capacity_col, all_models)
@@ -364,7 +364,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v4.1 (Layout Fix)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v4.2 (Final Layout Fix)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
