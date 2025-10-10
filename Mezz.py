@@ -94,7 +94,7 @@ def generate_qr_code(data_string):
         qr_img.save(img_buffer, format='PNG')
         img_buffer.seek(0)
         # Set a fixed size for the QR code image itself
-        return Image(img_buffer, width=1.8*cm, height=1.8*cm)
+        return Image(img_buffer, width=2*cm, height=2*cm)
     except Exception as e:
         st.error(f"Error generating QR code: {e}")
         return None
@@ -138,7 +138,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     sticker_content = []
     
     # --- START: COMPACT ROW HEIGHT DEFINITIONS ---
-    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.5*cm, 1.5*cm, 0.8*cm, 0.8*cm
+    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.0*cm, 1.5*cm, 0.8*cm, 0.8*cm
     # --- END: COMPACT ROW HEIGHT DEFINITIONS ---
 
     main_table = Table([
