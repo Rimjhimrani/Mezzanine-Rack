@@ -60,7 +60,7 @@ max_cap_label_style = ParagraphStyle(
 
 # Style for the "Store Location" label
 store_loc_label_style = ParagraphStyle(
-    name='StoreLocLabel', fontName='Helvetica-Bold', fontSize=10,
+    name='StoreLocLabel', fontName='Helvetica-Bold', fontSize=12,
     alignment=TA_CENTER, leading=18
 )
 
@@ -158,7 +158,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     PADDED_CONTENT_WIDTH = CONTENT_BOX_WIDTH - (0.2 * cm) 
     sticker_content = []
     
-    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.2*cm, 1.4*cm, 1*cm, 1*cm
+    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.2*cm, 1.4*cm, 1*cm, 1.2*cm
 
     # Create Paragraph objects using their unique, individual styles
     part_no_label_p = Paragraph("Part No", part_no_label_style)
