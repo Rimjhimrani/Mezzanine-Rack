@@ -138,7 +138,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     sticker_content = []
     
     # --- START: COMPACT ROW HEIGHT DEFINITIONS ---
-    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.0*cm, 1.5*cm, 0.8*cm, 0.8*cm
+    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.2*cm, 1.5*cm, 1*cm, 1*cm
     # --- END: COMPACT ROW HEIGHT DEFINITIONS ---
 
     main_table = Table([
