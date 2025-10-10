@@ -47,12 +47,12 @@ bold_style = ParagraphStyle(
 def get_dynamic_desc_style(text):
     """Dynamically adjust font size for the description (compact version)."""
     length = len(text)
-    if length <= 15: font_size = 22
-    elif length <= 25: font_size = 20
-    elif length <= 35: font_size = 18
-    elif length <= 45: font_size = 16
-    elif length <= 55: font_size = 14
-    elif length <= 75: font_size = 12
+    if length <= 15: font_size = 12
+    elif length <= 25: font_size = 12
+    elif length <= 35: font_size = 10
+    elif length <= 45: font_size = 10
+    elif length <= 55: font_size = 10
+    elif length <= 75: font_size = 8
     else: font_size = 10
     leading = font_size + 2
     return ParagraphStyle(
@@ -94,7 +94,7 @@ def generate_qr_code(data_string):
         qr_img.save(img_buffer, format='PNG')
         img_buffer.seek(0)
         # Set a fixed size for the QR code image itself
-        return Image(img_buffer, width=2.5*cm, height=2.5*cm)
+        return Image(img_buffer, width=1.8*cm, height=1.8*cm)
     except Exception as e:
         st.error(f"Error generating QR code: {e}")
         return None
@@ -175,7 +175,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     qr_section_width = bottom_row_width * 0.3
 
     max_models = 5
-    mtm_row_height = 1.8 * cm  # Compact height
+    mtm_row_height = 1.5 * cm  # Compact height
     mtm_box_width = mtm_section_width / max_models
 
     headers, values = [], []
@@ -191,7 +191,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 14),
+        ('FONTSIZE', (0, 0), (-1, -1), 12),
     ]))
 
     qr_element = qr_image if qr_image else Paragraph("QR", ParagraphStyle(name='qr-placeholder', alignment=TA_CENTER))
