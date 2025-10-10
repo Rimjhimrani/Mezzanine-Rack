@@ -182,7 +182,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     store_loc_table.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                                           ('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
     sticker_content.append(store_loc_table)
-    sticker_content.append(Spacer(1, 0.3*cm))
+    sticker_content.append(Spacer(1, 0.5*cm))
     
     # --- Bottom Row Logic (MTM and QR) ---
     bottom_row_width = PADDED_CONTENT_WIDTH
