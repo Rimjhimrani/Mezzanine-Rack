@@ -40,23 +40,23 @@ except ImportError:
 
 # Define paragraph styles
 bold_style = ParagraphStyle(
-    name='Bold', fontName='Helvetica-Bold', fontSize=38,
+    name='Bold', fontName='Helvetica-Bold', fontSize=12,
     alignment=TA_CENTER, leading=38, wordWrap='CJK', splitLongWords=1
 )
 
 def get_dynamic_desc_style(text):
     """Dynamically adjust font size for the description based on text length."""
     length = len(text)
-    if length <= 10: font_size = 30
-    elif length <= 15: font_size = 28
-    elif length <= 20: font_size = 26
-    elif length <= 25: font_size = 24
-    elif length <= 35: font_size = 22
-    elif length <= 45: font_size = 20
-    elif length <= 55: font_size = 18
-    elif length <= 65: font_size = 16
-    elif length <= 75: font_size = 14
-    elif length <= 85: font_size = 12
+    if length <= 10: font_size = 10
+    elif length <= 15: font_size = 10
+    elif length <= 20: font_size = 10
+    elif length <= 25: font_size = 10
+    elif length <= 35: font_size = 10
+    elif length <= 45: font_size = 10
+    elif length <= 55: font_size = 10
+    elif length <= 65: font_size = 10
+    elif length <= 75: font_size = 10
+    elif length <= 85: font_size = 9
     else: font_size = 10
     leading = font_size + 2
     return ParagraphStyle(
@@ -160,7 +160,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     
     store_loc_inner_table = Table([store_loc_values], colWidths=inner_col_widths, rowHeights=[store_loc_row_height])
     store_loc_inner_table.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                               ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 16)]))
+                                               ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 12)]))
     
     store_loc_table = Table([[store_loc_label, store_loc_inner_table]], colWidths=[PADDED_CONTENT_WIDTH/3, inner_table_width], rowHeights=[store_loc_row_height])
     store_loc_table.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
