@@ -20,7 +20,7 @@ STICKER_PAGESIZE = (STICKER_WIDTH, STICKER_HEIGHT)
 
 # Define content box dimensions
 CONTENT_BOX_WIDTH = 10 * cm
-CONTENT_BOX_HEIGHT = 15 * cm # Changed to occupy the full height for a single sticker per page logic
+CONTENT_BOX_HEIGHT = 7.2 * cm # Changed to occupy the full height for a single sticker per page logic
 
 # Check for PIL and install if needed
 try:
