@@ -60,7 +60,7 @@ max_cap_label_style = ParagraphStyle(
 
 # Style for the "Store Location" label
 store_loc_label_style = ParagraphStyle(
-    name='StoreLocLabel', fontName='Helvetica-Bold', fontSize=12,
+    name='StoreLocLabel', fontName='Helvetica-Bold', fontSize=10,
     alignment=TA_CENTER, leading=18
 )
 
