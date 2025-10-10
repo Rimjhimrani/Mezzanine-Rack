@@ -41,7 +41,7 @@ except ImportError:
 # --- START: COMPACT FONT STYLE DEFINITIONS ---
 bold_style = ParagraphStyle(
     name='Bold', fontName='Helvetica-Bold', fontSize=12,
-    alignment=TA_CENTER, leading=28, wordWrap='CJK', splitLongWords=1
+    alignment=TA_CENTER, leading=32, wordWrap='CJK', splitLongWords=1
 )
 
 def get_dynamic_desc_style(text):
