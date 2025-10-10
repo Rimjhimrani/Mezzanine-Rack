@@ -20,7 +20,7 @@ STICKER_PAGESIZE = (STICKER_WIDTH, STICKER_HEIGHT)
 
 # Define content box dimensions
 CONTENT_BOX_WIDTH = 10 * cm
-CONTENT_BOX_HEIGHT = 7.2 * cm # Changed to occupy the full height for a single sticker per page logic
+CONTENT_BOX_HEIGHT = 7.2 * cm # Changed as per your request
 
 # Check for PIL and install if needed
 try:
@@ -356,7 +356,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.8 (Single Sticker Edition)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.9 (Single Sticker Edition)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
