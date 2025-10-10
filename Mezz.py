@@ -14,13 +14,13 @@ import sys
 import tempfile
 
 # Define sticker dimensions
-STICKER_WIDTH = 18 * cm
-STICKER_HEIGHT = 9 * cm
+STICKER_WIDTH = 10 * cm
+STICKER_HEIGHT = 7.5 * cm
 STICKER_PAGESIZE = A4
 
 # Define content box dimensions
-CONTENT_BOX_WIDTH = 18 * cm
-CONTENT_BOX_HEIGHT = 9 * cm
+CONTENT_BOX_WIDTH = 10 * cm
+CONTENT_BOX_HEIGHT = 7.5 * cm
 
 # Check for PIL and install if needed
 try:
