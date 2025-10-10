@@ -158,7 +158,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     PADDED_CONTENT_WIDTH = CONTENT_BOX_WIDTH - (0.2 * cm) 
     sticker_content = []
     
-    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.2*cm, 1.4*cm, 0.8*cm, 1.2*cm
+    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.2*cm, 1.4*cm, 1*cm, 1.2*cm
 
     # Create Paragraph objects using their unique, individual styles
     part_no_label_p = Paragraph("Part No", part_no_label_style)
@@ -174,7 +174,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
         [part_no_label_p, part_no_value_p],
         [desc_label_p, desc_value_p],
         [max_cap_label_p, max_cap_value_p]
-    ], colWidths=[PADDED_CONTENT_WIDTH*0.3, PADDED_CONTENT_WIDTH*0.7], rowHeights=[header_row_height, desc_row_height, max_cap_row_height])
+    ], colWidths=[PADDED_CONTENT_WIDTH*0.2, PADDED_CONTENT_WIDTH*0.8], rowHeights=[header_row_height, desc_row_height, max_cap_row_height])
     
     main_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
@@ -194,7 +194,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
                                                ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 16),
                                                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold')]))
     
-    store_loc_table = Table([[store_loc_label, store_loc_inner_table]], colWidths=[PADDED_CONTENT_WIDTH*0.3, inner_table_width], rowHeights=[store_loc_row_height])
+    store_loc_table = Table([[store_loc_label, store_loc_inner_table]], colWidths=[PADDED_CONTENT_WIDTH*0.2, inner_table_width], rowHeights=[store_loc_row_height])
     store_loc_table.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                                           ('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
     sticker_content.append(store_loc_table)
