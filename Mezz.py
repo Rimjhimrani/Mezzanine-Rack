@@ -48,19 +48,19 @@ part_no_label_style = ParagraphStyle(
 
 # Style for the "Description" label
 desc_label_style = ParagraphStyle(
-    name='DescLabel', fontName='Helvetica-Bold', fontSize=16,
+    name='DescLabel', fontName='Helvetica-Bold', fontSize=14,
     alignment=TA_CENTER, leading=18
 )
 
 # Style for the "Max capacity" label
 max_cap_label_style = ParagraphStyle(
-    name='MaxCapLabel', fontName='Helvetica-Bold', fontSize=14,
+    name='MaxCapLabel', fontName='Helvetica-Bold', fontSize=12,
     alignment=TA_CENTER, leading=18
 )
 
 # Style for the "Store Location" label
 store_loc_label_style = ParagraphStyle(
-    name='StoreLocLabel', fontName='Helvetica-Bold', fontSize=14,
+    name='StoreLocLabel', fontName='Helvetica-Bold', fontSize=12,
     alignment=TA_CENTER, leading=18
 )
 
