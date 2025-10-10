@@ -13,14 +13,14 @@ import subprocess
 import sys
 import tempfile
 
-# Define sticker dimensions
+# Define sticker dimensions as per your new request
 STICKER_WIDTH = 10 * cm
-STICKER_HEIGHT = 7.5 * cm
-STICKER_PAGESIZE = A4
+STICKER_HEIGHT = 15 * cm
+STICKER_PAGESIZE = (STICKER_WIDTH, STICKER_HEIGHT)
 
 # Define content box dimensions
 CONTENT_BOX_WIDTH = 10 * cm
-CONTENT_BOX_HEIGHT = 7.5 * cm
+CONTENT_BOX_HEIGHT = 15 * cm # Changed to occupy the full height for a single sticker per page logic
 
 # Check for PIL and install if needed
 try:
@@ -188,19 +188,14 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     
     total_mtm_width = max_models * mtm_box_width
     
-    # --- START OF QR CODE CENTERING FIX ---
-    # Calculate the total space remaining after placing the MTM box and QR code
     remaining_width = PADDED_CONTENT_WIDTH - total_mtm_width - qr_width
-    # Divide the remaining space into two equal spacers to place before and after the QR code
     spacer_width = remaining_width / 2.0
     
-    # Construct the bottom row with the MTM box on the left and the QR code centered in the remaining space
     bottom_row = Table(
         [[mtm_table, Spacer(spacer_width, 0), qr_table, Spacer(spacer_width, 0)]], 
         colWidths=[total_mtm_width, spacer_width, qr_width, spacer_width], 
         rowHeights=[max(mtm_row_height, qr_height)]
     )
-    # --- END OF QR CODE CENTERING FIX ---
     
     bottom_row.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')]))
     sticker_content.append(bottom_row)
@@ -222,6 +217,7 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
     """
     Generate sticker labels from a file with bus models in columns C-G.
     Correctly handles empty or 'Unnamed' column headers.
+    Generates one sticker per page.
     """
     if status_callback: status_callback(f"Processing file: {excel_file_path}")
     try:
@@ -265,24 +261,21 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
 
     df['aggregated_models'] = df.apply(lambda row: get_model_quantities(row, model_mapping), axis=1)
 
-    doc = SimpleDocTemplate(output_pdf_path, pagesize=A4, topMargin=1*cm, bottomMargin=1*cm, leftMargin=1.5*cm, rightMargin=1.5*cm)
+    # Use the custom page size here
+    doc = SimpleDocTemplate(output_pdf_path, pagesize=STICKER_PAGESIZE, topMargin=0, bottomMargin=0, leftMargin=0, rightMargin=0)
     all_elements = []
     total_stickers = len(df)
 
-    for i in range(0, total_stickers, 2):
-        if status_callback: status_callback(f"Creating stickers {i+1}-{min(i+2, total_stickers)} of {total_stickers}")
+    # Loop through each row to create one sticker per page
+    for i in range(total_stickers):
+        if status_callback: status_callback(f"Creating sticker {i+1} of {total_stickers}")
         
-        row_data1 = df.iloc[i].to_dict()
-        sticker1 = create_single_sticker(row_data1, part_no_col, desc_col, max_capacity_col, all_models)
-        all_elements.append(sticker1)
+        row_data = df.iloc[i].to_dict()
+        sticker = create_single_sticker(row_data, part_no_col, desc_col, max_capacity_col, all_models)
+        all_elements.append(sticker)
         
-        if i + 1 < total_stickers:
-            all_elements.append(Spacer(1, 1.5*cm))
-            row_data2 = df.iloc[i+1].to_dict()
-            sticker2 = create_single_sticker(row_data2, part_no_col, desc_col, max_capacity_col, all_models)
-            all_elements.append(sticker2)
-
-        if i + 2 < total_stickers:
+        # Add a page break after each sticker, except the last one
+        if i < total_stickers - 1:
             all_elements.append(PageBreak())
 
     try:
@@ -358,12 +351,12 @@ def main():
         st.info("👆 Please upload an Excel or CSV file to get started")
         st.subheader("✨ Features")
         col1, col2, col3 = st.columns(3)
-        with col1: st.markdown(" **🏷️ Professional Labels** \n - Clean, readable design\n - Optimized for printing\n - 2 labels per page")
+        with col1: st.markdown(" **🏷️ Professional Labels** \n - Clean, readable design\n - Optimized for printing\n - **1 label per page (10x15 cm)**")
         with col2: st.markdown(" **📱 QR Code Integration** \n - Automatic QR code generation\n - Contains all part information\n - Easy scanning and tracking")
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.7 (Final)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.8 (Single Sticker Edition)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
