@@ -78,13 +78,13 @@ def get_dynamic_desc_style(text):
     elif length <= 40: font_size = 8
     else: font_size = 14
     return ParagraphStyle(
-        name='DescriptionDynamic', fontName='Helvetica-Bold', fontSize=font_size,
+        name='DescriptionDynamic', fontName='Helvetica', fontSize=font_size,
         alignment=TA_LEFT, leading=font_size + 2, wordWrap='CJK', splitLongWords=1,
     )
 
 # Style for the Max Capacity value
 max_capacity_value_style = ParagraphStyle(
-    name='MaxCapValue', fontName='Helvetica-Bold', fontSize=20,
+    name='MaxCapValue', fontName='Helvetica', fontSize=12,
     alignment=TA_CENTER, leading=20
 )
 # --- END: INDIVIDUAL STYLE DEFINITIONS ---
@@ -158,7 +158,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     PADDED_CONTENT_WIDTH = CONTENT_BOX_WIDTH - (0.2 * cm) 
     sticker_content = []
     
-    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.2*cm, 1.4*cm, 1*cm, 1.2*cm
+    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.2*cm, 1.4*cm, 0.8*cm, 1.2*cm
 
     # Create Paragraph objects using their unique, individual styles
     part_no_label_p = Paragraph("Part No", part_no_label_style)
@@ -198,7 +198,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     store_loc_table.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                                           ('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
     sticker_content.append(store_loc_table)
-    sticker_content.append(Spacer(1, 0.5*cm))
+    sticker_content.append(Spacer(1, 0.3*cm))
     
     bottom_row_width = PADDED_CONTENT_WIDTH
     mtm_section_width = bottom_row_width * 0.7
