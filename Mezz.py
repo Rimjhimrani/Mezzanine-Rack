@@ -144,7 +144,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     main_table = Table([
         ["Part No", Paragraph(f"{part_no}", bold_style)],
         ["Description", Paragraph(desc, get_dynamic_desc_style(desc))],
-        ["Max capacity", Paragraph(str(max_capacity), qty_style)]
+        ["Max \ncapacity", Paragraph(str(max_capacity), qty_style)]
     ], colWidths=[PADDED_CONTENT_WIDTH/3, PADDED_CONTENT_WIDTH*2/3], rowHeights=[header_row_height, desc_row_height, max_cap_row_height])
     main_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
