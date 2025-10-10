@@ -97,7 +97,7 @@ def generate_qr_code(data_string):
         img_buffer = BytesIO()
         qr_img.save(img_buffer, format='PNG')
         img_buffer.seek(0)
-        return Image(img_buffer, width=2.2*cm, height=2.2*cm)
+        return Image(img_buffer, width=2*cm, height=2*cm)
     except Exception as e:
         st.error(f"Error generating QR code: {e}")
         return None
