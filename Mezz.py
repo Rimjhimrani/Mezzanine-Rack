@@ -13,14 +13,14 @@ import subprocess
 import sys
 import tempfile
 
-# Define sticker dimensions as per your new request
+# Define sticker dimensions
 STICKER_WIDTH = 10 * cm
 STICKER_HEIGHT = 15 * cm
 STICKER_PAGESIZE = (STICKER_WIDTH, STICKER_HEIGHT)
 
 # Define content box dimensions
 CONTENT_BOX_WIDTH = 10 * cm
-CONTENT_BOX_HEIGHT = 7.2 * cm # Changed as per your request
+CONTENT_BOX_HEIGHT = 7.2 * cm
 
 # Check for PIL and install if needed
 try:
@@ -41,7 +41,7 @@ except ImportError:
 # Define paragraph styles
 bold_style = ParagraphStyle(
     name='Bold', fontName='Helvetica-Bold', fontSize=38,
-    alignment=TA_CENTER, leading=38, wordWrap='CJK'
+    alignment=TA_CENTER, leading=38, wordWrap='CJK', splitLongWords=1
 )
 
 def get_dynamic_desc_style(text):
@@ -67,7 +67,7 @@ def get_dynamic_desc_style(text):
 
 qty_style = ParagraphStyle(
     name='Quantity', fontName='Helvetica', fontSize=22,
-    alignment=TA_CENTER, leading=22, wordWrap='CJK'
+    alignment=TA_CENTER, leading=22, wordWrap='CJK', splitLongWords=1
 )
 
 def clean_number_format(value):
@@ -173,7 +173,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
         headers.append(model_name)
         qty_val = mtm_quantities.get(model_name, "") if model_name else ""
         values.append(Paragraph(f"<b>{clean_number_format(qty_val)}</b>" if qty_val else "",
-            ParagraphStyle(name=f"Qty_{model_name}", fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER)))
+            ParagraphStyle(name=f"Qty_{model_name}", fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER, splitLongWords=1)))
     
     mtm_table = Table([headers, values], colWidths=[mtm_box_width] * max_models, rowHeights=[mtm_row_height/2, mtm_row_height/2])
     mtm_table.setStyle(TableStyle([
@@ -187,9 +187,8 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     qr_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), ('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
     
     total_mtm_width = max_models * mtm_box_width
-    
     remaining_width = PADDED_CONTENT_WIDTH - total_mtm_width - qr_width
-    spacer_width = remaining_width / 2.0
+    spacer_width = remaining_width / 2.0 if remaining_width > 0 else 0
     
     bottom_row = Table(
         [[mtm_table, Spacer(spacer_width, 0), qr_table, Spacer(spacer_width, 0)]], 
@@ -205,38 +204,38 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
         ('BOX', (0, 0), (-1, -1), 2, colors.black),
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'), 
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0), ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0), ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
     
     return KeepTogether([sticker_table])
 
 def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=None):
     """
-    Generate sticker labels from a file with bus models in columns C-G.
-    Correctly handles empty or 'Unnamed' column headers.
-    Generates one sticker per page.
+    Generate sticker labels with enhanced error handling.
     """
-    if status_callback: status_callback(f"Processing file: {excel_file_path}")
+    if status_callback: status_callback(f"Reading file: {excel_file_path}")
     try:
         df = pd.read_csv(excel_file_path, keep_default_na=False) if excel_file_path.lower().endswith('.csv') else pd.read_excel(excel_file_path, keep_default_na=False, engine='openpyxl')
-        if status_callback: status_callback(f"Successfully read file with {len(df)} rows")
+        if df.empty:
+            if status_callback: status_callback("❌ Error: The uploaded file is empty.")
+            return None
+        if status_callback: status_callback(f"✅ Successfully read {len(df)} rows. Processing data...")
     except Exception as e:
-        if status_callback: status_callback(f"Error reading file: {e}")
+        if status_callback: status_callback(f"❌ Error reading file: {e}. Please ensure it is a valid Excel or CSV file.")
         return None
 
     original_columns = df.columns.tolist()
     
+    # --- NEW: Enhanced Column Validation ---
+    if len(original_columns) < 2:
+        if status_callback: status_callback("❌ Error: File must have at least 2 columns (Part Number, Description).")
+        return None
+
     part_no_col = next((c for c in original_columns if 'PART' in str(c).upper() and 'NO' in str(c).upper()), original_columns[0])
-    desc_col = next((c for c in original_columns if 'DESC' in str(c).upper()), original_columns[1] if len(original_columns) > 1 else part_no_col)
+    desc_col = next((c for c in original_columns if 'DESC' in str(c).upper()), original_columns[1])
     max_capacity_col = next((c for c in original_columns if 'MAX' in str(c).upper() and 'CAPACITY' in str(c).upper()), None)
     
-    if len(original_columns) < 3:
-        if status_callback: status_callback("Error: File must have at least 3 columns for model data (C-G).")
-        return None
-        
     model_cols_original = original_columns[2:7] if len(original_columns) >= 7 else original_columns[2:]
     
     all_models = []
@@ -261,29 +260,36 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
 
     df['aggregated_models'] = df.apply(lambda row: get_model_quantities(row, model_mapping), axis=1)
 
-    # Use the custom page size here
     doc = SimpleDocTemplate(output_pdf_path, pagesize=STICKER_PAGESIZE, topMargin=0, bottomMargin=0, leftMargin=0, rightMargin=0)
     all_elements = []
     total_stickers = len(df)
-
-    # Loop through each row to create one sticker per page
-    for i in range(total_stickers):
-        if status_callback: status_callback(f"Creating sticker {i+1} of {total_stickers}")
-        
-        row_data = df.iloc[i].to_dict()
-        sticker = create_single_sticker(row_data, part_no_col, desc_col, max_capacity_col, all_models)
-        all_elements.append(sticker)
-        
-        # Add a page break after each sticker, except the last one
-        if i < total_stickers - 1:
-            all_elements.append(PageBreak())
-
+    
+    current_row_index = 0
     try:
+        for i in range(total_stickers):
+            current_row_index = i + 1 # Use 1-based index for user-facing messages
+            if status_callback: status_callback(f"⚙️ Creating sticker for row {current_row_index} of {total_stickers}...")
+            
+            row_data = df.iloc[i].to_dict()
+            sticker = create_single_sticker(row_data, part_no_col, desc_col, max_capacity_col, all_models)
+            all_elements.append(sticker)
+            
+            if i < total_stickers - 1:
+                all_elements.append(PageBreak())
+
+        if status_callback: status_callback("Building final PDF...")
         doc.build(all_elements)
-        if status_callback: status_callback(f"PDF generated successfully: {output_pdf_path}")
+        if status_callback: status_callback(f"✅ PDF generated successfully!")
         return output_pdf_path
+
     except Exception as e:
-        if status_callback: status_callback(f"Error building PDF: {e}")
+        # --- NEW: Catching errors during PDF build and pointing to the problematic row ---
+        error_message = f"""❌ Error building PDF. The process failed at row {current_row_index}.
+        Please check the data in that row of your file for issues like:
+        - Very long text without spaces.
+        - Invalid characters or data formats.
+        - Technical Error: {e}"""
+        if status_callback: status_callback(error_message)
         return None
 
 def main():
@@ -303,7 +309,7 @@ def main():
 
         st.success(f"✅ File uploaded: {uploaded_file.name}")
         try:
-            preview_df = pd.read_excel(temp_input_path, header=0).head(5) if uploaded_file.name.lower().endswith(('xlsx', 'xls')) else pd.read_csv(temp_input_path, header=0).head(5)
+            preview_df = pd.read_excel(temp_input_path, header=0, engine='openpyxl').head(5) if uploaded_file.name.lower().endswith(('xlsx', 'xls')) else pd.read_csv(temp_input_path, header=0).head(5)
             st.subheader("📊 Data Preview (First 5 rows)")
             st.dataframe(preview_df, use_container_width=True)
         except Exception as e:
@@ -315,27 +321,30 @@ def main():
 
         with col1:
             if st.button("🏷️ Generate PDF Labels", type="primary", use_container_width=True):
-                status_container = st.empty()
-                def update_status(message): status_container.info(f"📊 {message}")
+                # Use a text area for status to handle multi-line error messages
+                status_box = st.empty()
+                def update_status(message):
+                    status_box.text_area("Status", message, height=150)
+
+                result_path = None
                 try:
                     update_status("Starting label generation...")
                     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_output:
                         result_path = generate_sticker_labels(temp_input_path, tmp_output.name, status_callback=update_status)
+                    
                     if result_path:
                         with open(result_path, 'rb') as pdf_file:
                             pdf_data = pdf_file.read()
-                        status_container.success("✅ PDF Generation Complete!")
+                        
                         st.download_button(
                             label="📥 Download PDF Labels", data=pdf_data,
                             file_name=f"mezzanine_labels_{os.path.splitext(uploaded_file.name)[0]}.pdf",
                             mime="application/pdf", use_container_width=True)
-                    else:
-                        status_container.error("❌ Failed to generate PDF. Please check file format and requirements.")
                 except Exception as e:
-                    status_container.error(f"❌ An unexpected error occurred: {str(e)}")
+                    update_status(f"❌ An unexpected critical error occurred: {str(e)}")
                 finally:
                     if os.path.exists(temp_input_path): os.unlink(temp_input_path)
-                    if 'result_path' in locals() and result_path and os.path.exists(result_path): os.unlink(result_path)
+                    if result_path and os.path.exists(result_path): os.unlink(result_path)
 
         with col2:
             st.info(
@@ -356,7 +365,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v3.9 (Single Sticker Edition)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v4.0 (Robust Edition)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
