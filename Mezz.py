@@ -174,7 +174,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
         [part_no_label_p, part_no_value_p],
         [desc_label_p, desc_value_p],
         [max_cap_label_p, max_cap_value_p]
-    ], colWidths=[PADDED_CONTENT_WIDTH/3, PADDED_CONTENT_WIDTH*2/3], rowHeights=[header_row_height, desc_row_height, max_cap_row_height])
+    ], colWidths=[PADDED_CONTENT_WIDTH*0.3, PADDED_CONTENT_WIDTH*0.7], rowHeights=[header_row_height, desc_row_height, max_cap_row_height])
     
     main_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
@@ -185,7 +185,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
 
     store_loc_label = Paragraph("Store Location", store_loc_label_style)
     store_loc_values = [v for v in extract_store_location_data_from_excel(row) if v] or [""]
-    inner_table_width = PADDED_CONTENT_WIDTH * 2 / 3
+    inner_table_width = PADDED_CONTENT_WIDTH * 0.7 # Adjusted to the new 70% width
     num_cols = len(store_loc_values)
     inner_col_widths = [inner_table_width / num_cols] * num_cols if num_cols > 0 else [inner_table_width]
     
@@ -194,7 +194,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
                                                ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 16),
                                                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold')]))
     
-    store_loc_table = Table([[store_loc_label, store_loc_inner_table]], colWidths=[PADDED_CONTENT_WIDTH/3, inner_table_width], rowHeights=[store_loc_row_height])
+    store_loc_table = Table([[store_loc_label, store_loc_inner_table]], colWidths=[PADDED_CONTENT_WIDTH*0.3, inner_table_width], rowHeights=[store_loc_row_height])
     store_loc_table.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                                           ('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
     sticker_content.append(store_loc_table)
@@ -398,7 +398,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v7.1 (Final Customized Headers)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v8.0 (Final)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
