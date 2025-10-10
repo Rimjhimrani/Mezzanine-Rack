@@ -191,7 +191,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     
     store_loc_inner_table = Table([store_loc_values], colWidths=inner_col_widths, rowHeights=[store_loc_row_height])
     store_loc_inner_table.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                               ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 16),
+                                               ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 14),
                                                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold')]))
     
     store_loc_table = Table([[store_loc_label, store_loc_inner_table]], colWidths=[PADDED_CONTENT_WIDTH*0.3, inner_table_width], rowHeights=[store_loc_row_height])
