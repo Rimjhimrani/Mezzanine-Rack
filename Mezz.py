@@ -48,7 +48,7 @@ part_no_label_style = ParagraphStyle(
 
 # Style for the "Description" label
 desc_label_style = ParagraphStyle(
-    name='DescLabel', fontName='Helvetica-Bold', fontSize=13,
+    name='DescLabel', fontName='Helvetica-Bold', fontSize=12,
     alignment=TA_CENTER, leading=18
 )
 
