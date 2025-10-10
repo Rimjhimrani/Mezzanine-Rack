@@ -38,34 +38,38 @@ except ImportError:
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'qrcode'])
     import qrcode
 
-# --- START: COMPACT FONT STYLE DEFINITIONS ---
-bold_style = ParagraphStyle(
-    name='Bold', fontName='Helvetica-Bold', fontSize=12,
-    alignment=TA_CENTER, leading=36, wordWrap='CJK', splitLongWords=1
+# --- START: NEW FONT STYLE DEFINITIONS TO MATCH IMAGE ---
+
+# Style for the labels in the first column (e.g., "Part No", "Description")
+header_label_style = ParagraphStyle(
+    name='HeaderLabel', fontName='Helvetica-Bold', fontSize=12,
+    alignment=TA_CENTER, leading=18
+)
+
+# A very large, bold style specifically for the Part Number value
+part_no_value_style = ParagraphStyle(
+    name='PartNoValue', fontName='Helvetica-Bold', fontSize=18,
+    alignment=TA_CENTER, leading=32, wordWrap='CJK', splitLongWords=1
 )
 
 def get_dynamic_desc_style(text):
-    """Dynamically adjust font size for the description (compact version)."""
-    length = len(text)
-    if length <= 15: font_size = 12
-    elif length <= 25: font_size = 12
-    elif length <= 35: font_size = 10
-    elif length <= 45: font_size = 10
-    elif length <= 55: font_size = 10
-    elif length <= 75: font_size = 8
-    else: font_size = 10
-    leading = font_size + 2
+    """Dynamically adjust font size for the description value."""
+    length = len(str(text))
+    if length <= 20: font_size = 12
+    elif length <= 30: font_size = 12
+    elif length <= 40: font_size = 10
+    else: font_size = 14
     return ParagraphStyle(
-        name='DescriptionDynamic', fontName='Helvetica', fontSize=font_size,
-        alignment=TA_LEFT, leading=leading, wordWrap='CJK', splitLongWords=1,
-        spaceBefore=3, spaceAfter=3, allowWidows=1, allowOrphans=1,
+        name='DescriptionDynamic', fontName='Helvetica-Bold', fontSize=font_size,
+        alignment=TA_LEFT, leading=font_size + 2, wordWrap='CJK', splitLongWords=1,
     )
 
-qty_style = ParagraphStyle(
-    name='Quantity', fontName='Helvetica', fontSize=16,
-    alignment=TA_CENTER, leading=16, wordWrap='CJK', splitLongWords=1
+# Style for the Max Capacity value
+max_capacity_value_style = ParagraphStyle(
+    name='MaxCapValue', fontName='Helvetica-Bold', fontSize=18,
+    alignment=TA_CENTER, leading=20
 )
-# --- END: COMPACT FONT STYLE DEFINITIONS ---
+# --- END: NEW FONT STYLE DEFINITIONS ---
 
 
 def clean_number_format(value):
@@ -93,8 +97,7 @@ def generate_qr_code(data_string):
         img_buffer = BytesIO()
         qr_img.save(img_buffer, format='PNG')
         img_buffer.seek(0)
-        # Set a fixed size for the QR code image itself
-        return Image(img_buffer, width=2*cm, height=2*cm)
+        return Image(img_buffer, width=2.2*cm, height=2.2*cm)
     except Exception as e:
         st.error(f"Error generating QR code: {e}")
         return None
@@ -137,23 +140,34 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     PADDED_CONTENT_WIDTH = CONTENT_BOX_WIDTH - (0.2 * cm) 
     sticker_content = []
     
-    # --- START: COMPACT ROW HEIGHT DEFINITIONS ---
-    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.2*cm, 1.5*cm, 1*cm, 1*cm
-    # --- END: COMPACT ROW HEIGHT DEFINITIONS ---
+    # --- START: REVISED ROW HEIGHTS TO MATCH IMAGE ---
+    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.2*cm, 1.4*cm, 1*cm, 1*cm
+    # --- END: REVISED ROW HEIGHTS ---
+
+    # Create Paragraph objects for all content to apply specific styles
+    part_no_label_p = Paragraph("Part No", header_label_style)
+    part_no_value_p = Paragraph(part_no, part_no_value_style)
+    
+    desc_label_p = Paragraph("Description", header_label_style)
+    desc_value_p = Paragraph(desc, get_dynamic_desc_style(desc))
+    
+    max_cap_label_p = Paragraph("Max capacity", header_label_style)
+    max_cap_value_p = Paragraph(str(max_capacity), max_capacity_value_style)
 
     main_table = Table([
-        ["Part No", Paragraph(f"{part_no}", bold_style)],
-        ["Description", Paragraph(desc, get_dynamic_desc_style(desc))],
-        ["Max \ncapacity", Paragraph(str(max_capacity), qty_style)]
+        [part_no_label_p, part_no_value_p],
+        [desc_label_p, desc_value_p],
+        [max_cap_label_p, max_cap_value_p]
     ], colWidths=[PADDED_CONTENT_WIDTH/3, PADDED_CONTENT_WIDTH*2/3], rowHeights=[header_row_height, desc_row_height, max_cap_row_height])
+    
     main_table.setStyle(TableStyle([
-        ('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (0, -1), 16), ('PADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (1, 1), (1, 1), 10), # Add left padding to description value
     ]))
     sticker_content.append(main_table)
 
-    store_loc_label = Paragraph("Store Location", ParagraphStyle(name='StoreLoc', fontName='Helvetica-Bold', fontSize=16, alignment=TA_CENTER))
+    store_loc_label = Paragraph("Store<br/>Location", header_label_style) # Use <br/> for line break
     store_loc_values = [v for v in extract_store_location_data_from_excel(row) if v] or [""]
     inner_table_width = PADDED_CONTENT_WIDTH * 2 / 3
     num_cols = len(store_loc_values)
@@ -161,37 +175,34 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     
     store_loc_inner_table = Table([store_loc_values], colWidths=inner_col_widths, rowHeights=[store_loc_row_height])
     store_loc_inner_table.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                                               ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 14)]))
+                                               ('ALIGN', (0, 0), (-1, -1), 'CENTER'), ('FONTSIZE', (0, 0), (-1, -1), 16),
+                                               ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold')]))
     
     store_loc_table = Table([[store_loc_label, store_loc_inner_table]], colWidths=[PADDED_CONTENT_WIDTH/3, inner_table_width], rowHeights=[store_loc_row_height])
     store_loc_table.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 1, colors.black), ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                                           ('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
     sticker_content.append(store_loc_table)
-    sticker_content.append(Spacer(1, 0.3*cm))
-
-    # --- Robust Bottom Row Logic (with adjusted heights) ---
+    
+    # --- Bottom Row Logic (MTM and QR) ---
     bottom_row_width = PADDED_CONTENT_WIDTH
     mtm_section_width = bottom_row_width * 0.7
     qr_section_width = bottom_row_width * 0.3
 
     max_models = 5
-    mtm_row_height = 1.5 * cm  # Compact height
+    mtm_row_height = 1.5 * cm
     mtm_box_width = mtm_section_width / max_models
 
     headers, values = [], []
     for model_name in all_models:
-        headers.append(model_name)
+        headers.append(Paragraph(f"<b>{model_name}</b>", ParagraphStyle(name='model_header', fontSize=14, alignment=TA_CENTER)))
         qty_val = mtm_quantities.get(model_name, "") if model_name else ""
         values.append(Paragraph(f"<b>{clean_number_format(qty_val)}</b>" if qty_val else "",
-            ParagraphStyle(name=f"Qty_{model_name}", fontName='Helvetica-Bold', fontSize=14, alignment=TA_CENTER, splitLongWords=1)))
+            ParagraphStyle(name=f"Qty_{model_name}", fontName='Helvetica-Bold', fontSize=14, alignment=TA_CENTER)))
     
     mtm_table = Table([headers, values], colWidths=[mtm_box_width] * max_models, rowHeights=[mtm_row_height/2, mtm_row_height/2])
     mtm_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 12),
     ]))
 
     qr_element = qr_image if qr_image else Paragraph("QR", ParagraphStyle(name='qr-placeholder', alignment=TA_CENTER))
@@ -371,7 +382,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v6.0 (Compact Design)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v7.0 (Final Design Match)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
