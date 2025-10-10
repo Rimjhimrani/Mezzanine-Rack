@@ -41,7 +41,7 @@ except ImportError:
 # Define paragraph styles
 bold_style = ParagraphStyle(
     name='Bold', fontName='Helvetica-Bold', fontSize=12,
-    alignment=TA_CENTER, leading=38, wordWrap='CJK', splitLongWords=1
+    alignment=TA_CENTER, leading=22, wordWrap='CJK', splitLongWords=1
 )
 
 def get_dynamic_desc_style(text):
@@ -66,7 +66,7 @@ def get_dynamic_desc_style(text):
     )
 
 qty_style = ParagraphStyle(
-    name='Quantity', fontName='Helvetica', fontSize=22,
+    name='Quantity', fontName='Helvetica', fontSize=12,
     alignment=TA_CENTER, leading=22, wordWrap='CJK', splitLongWords=1
 )
 
@@ -138,7 +138,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     
     PADDED_CONTENT_WIDTH = CONTENT_BOX_WIDTH - (0.2 * cm) 
     sticker_content = []
-    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 2.0*cm, 1.8*cm, 1.32*cm, 1.3*cm
+    header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.0*cm, 1.0*cm, 1.0*cm, 1.0*cm
 
     main_table = Table([
         ["Part No", Paragraph(f"{part_no}", bold_style)],
@@ -177,7 +177,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
 
     # 2. Create the MTM (models) table. Its own width is now relative to its container.
     max_models = 5
-    mtm_row_height = 2.6 * cm  # Increased height slightly for better QR alignment
+    mtm_row_height = 1.5 * cm  # Increased height slightly for better QR alignment
     mtm_box_width = mtm_section_width / max_models # Each column gets an equal share of the MTM section width
 
     headers, values = [], []
