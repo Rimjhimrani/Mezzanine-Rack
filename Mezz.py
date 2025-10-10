@@ -42,13 +42,13 @@ except ImportError:
 
 # Style for the labels in the first column (e.g., "Part No", "Description")
 header_label_style = ParagraphStyle(
-    name='HeaderLabel', fontName='Helvetica-Bold', fontSize=12,
+    name='HeaderLabel', fontName='Helvetica-Bold', fontSize=14,
     alignment=TA_CENTER, leading=18
 )
 
 # A very large, bold style specifically for the Part Number value
 part_no_value_style = ParagraphStyle(
-    name='PartNoValue', fontName='Helvetica-Bold', fontSize=18,
+    name='PartNoValue', fontName='Helvetica-Bold', fontSize=24,
     alignment=TA_CENTER, leading=32, wordWrap='CJK', splitLongWords=1
 )
 
@@ -60,7 +60,7 @@ def get_dynamic_desc_style(text):
     elif length <= 40: font_size = 10
     else: font_size = 14
     return ParagraphStyle(
-        name='DescriptionDynamic', fontName='Helvetica-Bold', fontSize=font_size,
+        name='DescriptionDynamic', fontName='Helvetica', fontSize=font_size,
         alignment=TA_LEFT, leading=font_size + 2, wordWrap='CJK', splitLongWords=1,
     )
 
@@ -167,7 +167,7 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     ]))
     sticker_content.append(main_table)
 
-    store_loc_label = Paragraph("Store<br/>Location", header_label_style) # Use <br/> for line break
+    store_loc_label = Paragraph("Store Location", header_label_style) # Use <br/> for line break
     store_loc_values = [v for v in extract_store_location_data_from_excel(row) if v] or [""]
     inner_table_width = PADDED_CONTENT_WIDTH * 2 / 3
     num_cols = len(store_loc_values)
