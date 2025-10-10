@@ -167,7 +167,9 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     sticker_content.append(store_loc_table)
     sticker_content.append(Spacer(1, 0.1*cm))
 
-    max_models, mtm_box_width, mtm_row_height = 5, 1.6 * cm, 1.8 * cm
+    # --- THIS IS THE CORRECTED LINE ---
+    max_models, mtm_box_width, mtm_row_height = 5, 1.4 * cm, 1.8 * cm
+    
     headers, values = [], []
     for model_name in all_models:
         headers.append(model_name)
@@ -227,7 +229,6 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
 
     original_columns = df.columns.tolist()
     
-    # --- NEW: Enhanced Column Validation ---
     if len(original_columns) < 2:
         if status_callback: status_callback("❌ Error: File must have at least 2 columns (Part Number, Description).")
         return None
@@ -267,8 +268,8 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
     current_row_index = 0
     try:
         for i in range(total_stickers):
-            current_row_index = i + 1 # Use 1-based index for user-facing messages
-            if status_callback: status_callback(f"⚙️ Creating sticker for row {current_row_index} of {total_stickers}...")
+            current_row_index = i + 2 # Use 2-based index for user-facing messages to match Excel rows
+            if status_callback: status_callback(f"⚙️ Creating sticker for row {current_row_index} of {total_stickers+1}...")
             
             row_data = df.iloc[i].to_dict()
             sticker = create_single_sticker(row_data, part_no_col, desc_col, max_capacity_col, all_models)
@@ -283,9 +284,8 @@ def generate_sticker_labels(excel_file_path, output_pdf_path, status_callback=No
         return output_pdf_path
 
     except Exception as e:
-        # --- NEW: Catching errors during PDF build and pointing to the problematic row ---
-        error_message = f"""❌ Error building PDF. The process failed at row {current_row_index}.
-        Please check the data in that row of your file for issues like:
+        error_message = f"""❌ Error building PDF. The process failed at row {current_row_index} in your file.
+        Please check the data in that row for issues like:
         - Very long text without spaces.
         - Invalid characters or data formats.
         - Technical Error: {e}"""
@@ -321,7 +321,6 @@ def main():
 
         with col1:
             if st.button("🏷️ Generate PDF Labels", type="primary", use_container_width=True):
-                # Use a text area for status to handle multi-line error messages
                 status_box = st.empty()
                 def update_status(message):
                     status_box.text_area("Status", message, height=150)
@@ -365,7 +364,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v4.0 (Robust Edition)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v4.1 (Layout Fix)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
