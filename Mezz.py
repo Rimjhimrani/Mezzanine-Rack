@@ -48,7 +48,7 @@ part_no_label_style = ParagraphStyle(
 
 # Style for the "Description" label
 desc_label_style = ParagraphStyle(
-    name='DescLabel', fontName='Helvetica-Bold', fontSize=14,
+    name='DescLabel', fontName='Helvetica-Bold', fontSize=13,
     alignment=TA_CENTER, leading=18
 )
 
@@ -84,7 +84,7 @@ def get_dynamic_desc_style(text):
 
 # Style for the Max Capacity value
 max_capacity_value_style = ParagraphStyle(
-    name='MaxCapValue', fontName='Helvetica', fontSize=12,
+    name='MaxCapValue', fontName='Helvetica', fontSize=18,
     alignment=TA_CENTER, leading=20
 )
 # --- END: INDIVIDUAL STYLE DEFINITIONS ---
