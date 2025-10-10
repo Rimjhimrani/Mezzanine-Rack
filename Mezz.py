@@ -38,11 +38,29 @@ except ImportError:
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'qrcode'])
     import qrcode
 
-# --- START: NEW FONT STYLE DEFINITIONS TO MATCH IMAGE ---
+# --- START: INDIVIDUAL STYLE DEFINITIONS ---
 
-# Style for the labels in the first column (e.g., "Part No", "Description")
-header_label_style = ParagraphStyle(
-    name='HeaderLabel', fontName='Helvetica-Bold', fontSize=14,
+# Style for the "Part No" label
+part_no_label_style = ParagraphStyle(
+    name='PartNoLabel', fontName='Helvetica-Bold', fontSize=18,
+    alignment=TA_CENTER, leading=18
+)
+
+# Style for the "Description" label
+desc_label_style = ParagraphStyle(
+    name='DescLabel', fontName='Helvetica-Bold', fontSize=16,
+    alignment=TA_CENTER, leading=18
+)
+
+# Style for the "Max capacity" label
+max_cap_label_style = ParagraphStyle(
+    name='MaxCapLabel', fontName='Helvetica-Bold', fontSize=14,
+    alignment=TA_CENTER, leading=18
+)
+
+# Style for the "Store Location" label
+store_loc_label_style = ParagraphStyle(
+    name='StoreLocLabel', fontName='Helvetica-Bold', fontSize=14,
     alignment=TA_CENTER, leading=18
 )
 
@@ -56,20 +74,20 @@ def get_dynamic_desc_style(text):
     """Dynamically adjust font size for the description value."""
     length = len(str(text))
     if length <= 20: font_size = 12
-    elif length <= 30: font_size = 12
-    elif length <= 40: font_size = 10
+    elif length <= 30: font_size = 10
+    elif length <= 40: font_size = 8
     else: font_size = 14
     return ParagraphStyle(
-        name='DescriptionDynamic', fontName='Helvetica', fontSize=font_size,
+        name='DescriptionDynamic', fontName='Helvetica-Bold', fontSize=font_size,
         alignment=TA_LEFT, leading=font_size + 2, wordWrap='CJK', splitLongWords=1,
     )
 
 # Style for the Max Capacity value
 max_capacity_value_style = ParagraphStyle(
-    name='MaxCapValue', fontName='Helvetica-Bold', fontSize=18,
+    name='MaxCapValue', fontName='Helvetica-Bold', fontSize=20,
     alignment=TA_CENTER, leading=20
 )
-# --- END: NEW FONT STYLE DEFINITIONS ---
+# --- END: INDIVIDUAL STYLE DEFINITIONS ---
 
 
 def clean_number_format(value):
@@ -140,18 +158,16 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     PADDED_CONTENT_WIDTH = CONTENT_BOX_WIDTH - (0.2 * cm) 
     sticker_content = []
     
-    # --- START: REVISED ROW HEIGHTS TO MATCH IMAGE ---
     header_row_height, desc_row_height, max_cap_row_height, store_loc_row_height = 1.2*cm, 1.4*cm, 1*cm, 1*cm
-    # --- END: REVISED ROW HEIGHTS ---
 
-    # Create Paragraph objects for all content to apply specific styles
-    part_no_label_p = Paragraph("Part No", header_label_style)
+    # Create Paragraph objects using their unique, individual styles
+    part_no_label_p = Paragraph("Part No", part_no_label_style)
     part_no_value_p = Paragraph(part_no, part_no_value_style)
     
-    desc_label_p = Paragraph("Description", header_label_style)
+    desc_label_p = Paragraph("Description", desc_label_style)
     desc_value_p = Paragraph(desc, get_dynamic_desc_style(desc))
     
-    max_cap_label_p = Paragraph("Max capacity", header_label_style)
+    max_cap_label_p = Paragraph("Max capacity", max_cap_label_style)
     max_cap_value_p = Paragraph(str(max_capacity), max_capacity_value_style)
 
     main_table = Table([
@@ -163,11 +179,11 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     main_table.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('LEFTPADDING', (1, 1), (1, 1), 10), # Add left padding to description value
+        ('LEFTPADDING', (1, 1), (1, 1), 10),
     ]))
     sticker_content.append(main_table)
 
-    store_loc_label = Paragraph("Store Location", header_label_style) # Use <br/> for line break
+    store_loc_label = Paragraph("Store<br/>Location", store_loc_label_style)
     store_loc_values = [v for v in extract_store_location_data_from_excel(row) if v] or [""]
     inner_table_width = PADDED_CONTENT_WIDTH * 2 / 3
     num_cols = len(store_loc_values)
@@ -184,7 +200,6 @@ def create_single_sticker(row, part_no_col, desc_col, max_capacity_col, all_mode
     sticker_content.append(store_loc_table)
     sticker_content.append(Spacer(1, 0.5*cm))
     
-    # --- Bottom Row Logic (MTM and QR) ---
     bottom_row_width = PADDED_CONTENT_WIDTH
     mtm_section_width = bottom_row_width * 0.7
     qr_section_width = bottom_row_width * 0.3
@@ -383,7 +398,7 @@ def main():
         with col3: st.markdown(" **🔄 Smart Data Handling** \n - Reads models directly from columns C-G\n - Ignores empty/unnamed columns\n - Aggregates data onto one sticker")
 
     st.markdown("---")
-    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v7.0 (Final Design Match)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>© 2025 Agilomatrix - Mezzanine Label Generator v7.1 (Final Customized Headers)</p>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
